@@ -149,7 +149,9 @@ tab1, tab2, tab3 = st.tabs(["📊 Radar de jugador", "🔍 Jugadores similares",
 with tab1:
     col1, col2 = st.columns([1, 2])
     with col1:
-        player = st.selectbox("Jugador", sorted(df_f["player"].unique()))
+        pos_filter = st.selectbox("Posición", ["Todas"] + sorted(df_f["position_group"].unique()), key="pos_filter_radar")
+        pool = df_f if pos_filter == "Todas" else df_f[df_f["position_group"] == pos_filter]
+        player = st.selectbox("Jugador", sorted(pool["player"].unique()))
         row = df_f[df_f["player"] == player].iloc[0]
         st.metric("Grupo posicional", row["position_group"])
         st.metric("Minutos jugados", int(row["minutes_played"]))
@@ -180,7 +182,9 @@ with tab1:
 with tab2:
     col1, col2 = st.columns([1, 1])
     with col1:
-        player_sim = st.selectbox("Buscar similares a:", sorted(df_f["player"].unique()), key="sim_player")
+        pos_filter_sim = st.selectbox("Posición", ["Todas"] + sorted(df_f["position_group"].unique()), key="pos_filter_sim")
+        pool_sim = df_f if pos_filter_sim == "Todas" else df_f[df_f["position_group"] == pos_filter_sim]
+        player_sim = st.selectbox("Buscar similares a:", sorted(pool_sim["player"].unique()), key="sim_player")
         top_n = st.slider("Cantidad de resultados", 3, 15, 5)
 
     group = df_f.loc[df_f["player"] == player_sim, "position_group"].iloc[0]
