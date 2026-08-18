@@ -104,13 +104,28 @@ metrics = st.sidebar.multiselect(
 
 min_minutes = st.sidebar.slider("Minutos jugados mínimos", 0, int(df["minutes_played"].max()), 270, step=90)
 
+def infer_position_group(pos: str) -> str:
+    """Detecta el grupo posicional a partir del código FBref (ej. FWMF, DFMF, GK)."""
+    p = str(pos).upper()
+    if "GK" in p:
+        return "GK"
+    if p.startswith("FW") or p.endswith("FW"):
+        return "FWD"
+    if p.startswith("DF") or p.endswith("DF"):
+        return "DEF"
+    if "MF" in p:
+        return "MID"
+    return "MID"
+
 if "position_group" not in df.columns:
     positions = sorted(df["position"].dropna().astype(str).unique())
-    st.sidebar.markdown("**Agrupar posiciones** (para comparar contra pares reales)")
+    st.sidebar.markdown("**Grupo posicional** (detectado automático desde el código FBref — corregí si hace falta)")
     pos_group_input = {}
-    with st.sidebar.expander("Mapear posiciones a grupos (DEF/MID/FWD/GK)"):
+    with st.sidebar.expander("Revisar mapeo de posiciones"):
         for p in positions:
-            pos_group_input[p] = st.selectbox(p, ["DEF", "MID", "FWD", "GK"], key=f"grp_{p}")
+            default_group = infer_position_group(p)
+            default_idx = ["DEF", "MID", "FWD", "GK"].index(default_group)
+            pos_group_input[p] = st.selectbox(p, ["DEF", "MID", "FWD", "GK"], index=default_idx, key=f"grp_{p}")
     df["position_group"] = df["position"].map(pos_group_input)
 
 df_f = df[df["minutes_played"] >= min_minutes].copy()
@@ -153,10 +168,10 @@ with tab1:
         )
         fig, ax = baker.make_pizza(
             values, figsize=(8, 8.5), color_blank_space="same",
-            slice_colors=colors, value_colors=["#0d1117"] * len(values), value_bck_colors=colors,
+            slice_colors=colors, value_colors=["#ffffff"] * len(values), value_bck_colors=["#000000"] * len(values),
             kwargs_slices=dict(edgecolor="#0d1117", linewidth=2),
-            kwargs_params=dict(color="#e6e6e6", fontsize=9),
-            kwargs_values=dict(fontsize=9, fontweight="bold"),
+            kwargs_params=dict(color="#e6e6e6", fontsize=10),
+            kwargs_values=dict(fontsize=13, fontweight="bold"),
         )
         fig.text(0.5, 0.97, player, ha="center", color="#fff", fontsize=16, fontweight="bold")
         fig.text(0.5, 0.945, f"Percentil vs. {row['position_group']}", ha="center", color="#9aa4b2", fontsize=10)
