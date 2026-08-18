@@ -123,6 +123,7 @@ if not metrics:
 # PERCENTILES
 # --------------------------------------------------------------------------
 for m in metrics:
+    df_f[m] = df_f[m].fillna(0)
     df_f[f"{m}_pct"] = df_f.groupby("position_group")[m].rank(pct=True) * 100
 
 # --------------------------------------------------------------------------
@@ -142,7 +143,7 @@ with tab1:
 
     with col2:
         from mplsoccer import PyPizza
-        values = [round(row[f"{m}_pct"]) for m in metrics]
+        values = [round(row[f"{m}_pct"]) if pd.notna(row[f"{m}_pct"]) else 0 for m in metrics]
         labels = [m.replace("_p90", "").replace("_pct", "").replace("_", " ").title() for m in metrics]
         colors = ["#2ecc71" if v >= 70 else ("#f1c40f" if v >= 40 else "#e74c3c") for v in values]
 
