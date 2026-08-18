@@ -82,6 +82,8 @@ if missing:
     st.error(f"Faltan columnas obligatorias: {missing}. Columnas encontradas: {list(df.columns)}")
     st.stop()
 
+df["position"] = df["position"].fillna("Sin dato").astype(str)
+
 # --------------------------------------------------------------------------
 # CONFIGURACIÓN DE MÉTRICAS Y POSICIONES
 # --------------------------------------------------------------------------
@@ -103,7 +105,7 @@ metrics = st.sidebar.multiselect(
 min_minutes = st.sidebar.slider("Minutos jugados mínimos", 0, int(df["minutes_played"].max()), 270, step=90)
 
 if "position_group" not in df.columns:
-    positions = sorted(df["position"].unique())
+    positions = sorted(df["position"].dropna().astype(str).unique())
     st.sidebar.markdown("**Agrupar posiciones** (para comparar contra pares reales)")
     pos_group_input = {}
     with st.sidebar.expander("Mapear posiciones a grupos (DEF/MID/FWD/GK)"):
