@@ -2,14 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayerById, getPositionSeasonStats, CURRENT_SEASON } from "@/lib/queries";
 import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
-import { computeMetricPercentiles, computeRadarValues } from "@/lib/percentiles";
+import { computeMetricPercentiles, computePoolPercentileSpread, computeRadarValues } from "@/lib/percentiles";
 import { computeShotQualityProxy } from "@/lib/xgProxy";
+import { computePlayerRating, TIER_COLORS } from "@/lib/rating";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
-import PlayerRadar from "@/components/PlayerRadar";
+import PeerRadar from "@/components/PeerRadar";
 import PercentileBars from "@/components/PercentileBars";
 import ShotQualityCard from "@/components/ShotQualityCard";
 import MarketValueChart from "@/components/MarketValueChart";
 import KpiCard from "@/components/KpiCard";
+import RatingGauge from "@/components/RatingGauge";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,11 +29,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const pool = player.position_group ? await getPositionSeasonStats(player.position_group) : [];
   const poolStats = pool.flatMap((p) => p.season_stats);
   const radarValues = computeRadarValues(poolStats, currentStats, positionGroup);
+  const peerSpread = computePoolPercentileSpread(poolStats, positionGroup);
   const percentileGroups = PERCENTILE_GROUPS[positionGroup].map((g) => ({
     category: g.category,
     bars: computeMetricPercentiles(poolStats, currentStats, g.metrics),
   }));
   const shotQuality = computeShotQualityProxy(poolStats, currentStats);
+  const rating = computePlayerRating(poolStats, currentStats, positionGroup);
 
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
@@ -45,6 +49,18 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             {player.position_group && (
               <span className="text-xs rounded-full bg-accent/15 text-accent-2 px-3 py-1 border border-accent/30">
                 {POSITION_LABELS[player.position_group]}
+              </span>
+            )}
+            {rating && (
+              <span
+                className="text-xs font-medium rounded-full px-3 py-1 border"
+                style={{
+                  color: TIER_COLORS[rating.tier],
+                  borderColor: `${TIER_COLORS[rating.tier]}66`,
+                  background: `${TIER_COLORS[rating.tier]}1a`,
+                }}
+              >
+                {rating.tier} · {Math.round(rating.overall)}
               </span>
             )}
           </div>
@@ -68,13 +84,32 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         ))}
       </div>
 
+      {rating && (
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <h2 className="font-medium mb-1">Índices compuestos</h2>
+          <p className="text-xs text-muted mb-4">
+            Rating 0-100 por categoría, promedio de los percentiles de esa categoría frente al resto de{" "}
+            {POSITION_LABELS[positionGroup].toLowerCase()}es de la liga.
+          </p>
+          <div className="flex flex-wrap justify-around gap-4">
+            <RatingGauge label="General" value={rating.overall} color={TIER_COLORS[rating.tier]} size={104} />
+            {rating.categories.map((c) => (
+              <RatingGauge key={c.category} label={c.category} value={c.score} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="rounded-xl border border-border bg-surface p-5">
           <h2 className="font-medium mb-1">Perfil de percentiles</h2>
           <p className="text-xs text-muted mb-3">
             Comparado contra otros {POSITION_LABELS[positionGroup].toLowerCase()}es de la liga (temporada {CURRENT_SEASON}).
           </p>
-          <PlayerRadar series={[{ name: player.full_name, color: "#4ade80", values: radarValues }]} />
+          <PeerRadar
+            series={[{ name: player.full_name, color: "#4ade80", values: radarValues }]}
+            peers={peerSpread}
+          />
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-5">

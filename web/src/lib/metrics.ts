@@ -44,6 +44,13 @@ export const POSITION_LABELS: Record<PositionGroup, string> = {
   FWD: "Delantero",
 };
 
+export const POSITION_COLORS: Record<PositionGroup, string> = {
+  GK: "#facc15",
+  DEF: "#38bdf8",
+  MID: "#4ade80",
+  FWD: "#fb923c",
+};
+
 // KPIs resumen para las tarjetas del perfil, por grupo posicional.
 export const KPI_METRICS: Record<PositionGroup, MetricDef[]> = {
   FWD: [

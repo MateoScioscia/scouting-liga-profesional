@@ -2,6 +2,30 @@ import type { PlayerSeasonStats, PositionGroup } from "./types";
 import { RADAR_METRICS, getStat, LOWER_IS_BETTER, type MetricDef } from "./metrics";
 import { percentile } from "./format";
 
+export type PeerSpread = { metric: string; values: number[] };
+
+// Para cada métrica del radar, el percentil de TODOS los jugadores del pool
+// (no solo el jugador destacado) — sirve para dibujar la nube de puntos de
+// pares alrededor de cada eje del radar.
+export function computePoolPercentileSpread(
+  poolStats: PlayerSeasonStats[],
+  positionGroup: PositionGroup
+): PeerSpread[] {
+  const metrics = RADAR_METRICS[positionGroup];
+  return metrics.map((m) => {
+    const raws = poolStats
+      .map((s) => getStat(s, m.key))
+      .filter((v): v is number => v !== null)
+      .sort((a, b) => a - b);
+    const values = raws.map((v) => {
+      let pct = percentile(raws, v);
+      if (LOWER_IS_BETTER.has(m.key)) pct = 100 - pct;
+      return pct;
+    });
+    return { metric: m.short, values };
+  });
+}
+
 function metricPercentile(
   poolStats: PlayerSeasonStats[],
   target: PlayerSeasonStats | null | undefined,

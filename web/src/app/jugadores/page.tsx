@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { getPlayers, getTeams, getNationalities } from "@/lib/queries";
-import type { PositionGroup } from "@/lib/types";
+import type { PlayerSeasonStats, PositionGroup } from "@/lib/types";
 import FilterBar from "@/components/FilterBar";
-import PlayerTable from "@/components/PlayerTable";
+import PlayerCardGrid from "@/components/PlayerCardGrid";
 import KpiCard from "@/components/KpiCard";
 import { getStat } from "@/lib/metrics";
+import { computePlayerRating, type PlayerRating } from "@/lib/rating";
 
 type SearchParams = {
   q?: string;
@@ -20,7 +21,7 @@ export default async function JugadoresPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const [players, teams, nationalities] = await Promise.all([
+  const [players, teams, nationalities, allPlayers] = await Promise.all([
     getPlayers({
       q: sp.q,
       position: sp.position as PositionGroup | undefined,
@@ -30,7 +31,19 @@ export default async function JugadoresPage({
     }),
     getTeams(),
     getNationalities(),
+    getPlayers({}),
   ]);
+
+  const poolsByPosition: Record<PositionGroup, PlayerSeasonStats[]> = { GK: [], DEF: [], MID: [], FWD: [] };
+  for (const p of allPlayers) {
+    if (p.position_group) poolsByPosition[p.position_group].push(...p.season_stats);
+  }
+  const ratings: Record<string, PlayerRating | null> = {};
+  for (const p of players) {
+    ratings[p.id] = p.position_group
+      ? computePlayerRating(poolsByPosition[p.position_group], p.season_stats[0] ?? null, p.position_group)
+      : null;
+  }
 
   const totalGoals = players.reduce((acc, p) => acc + (p.season_stats[0]?.goals ?? 0), 0);
   const avgAge =
@@ -63,7 +76,7 @@ export default async function JugadoresPage({
         <FilterBar teams={teams} nationalities={nationalities} />
       </Suspense>
 
-      <PlayerTable players={players} />
+      <PlayerCardGrid players={players} ratings={ratings} />
     </div>
   );
 }

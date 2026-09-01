@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getPlayerIndex, getPlayerById, getPositionSeasonStats } from "@/lib/queries";
-import { computeRadarValues } from "@/lib/percentiles";
+import { computePoolPercentileSpread, computeRadarValues, type PeerSpread } from "@/lib/percentiles";
 import { POSITION_LABELS, getStat, formatMetric } from "@/lib/metrics";
 import ComparePicker from "@/components/ComparePicker";
-import PlayerRadar, { type RadarSeries } from "@/components/PlayerRadar";
+import PeerRadar, { type RadarSeries } from "@/components/PeerRadar";
 import type { PositionGroup } from "@/lib/types";
 
 const COLORS = ["#4ade80", "#facc15", "#38bdf8", "#f472b6"];
@@ -50,6 +50,7 @@ export default async function CompararPage({
   const sameGroup = groups.size === 1 ? (valid[0].player.position_group as PositionGroup) : null;
 
   let radarSeries: RadarSeries[] = [];
+  let peerSpread: PeerSpread[] = [];
   if (sameGroup) {
     const pool = await getPositionSeasonStats(sameGroup);
     const poolStats = pool.flatMap((p) => p.season_stats);
@@ -58,6 +59,7 @@ export default async function CompararPage({
       color: COLORS[i % COLORS.length],
       values: computeRadarValues(poolStats, p.seasonStats[0] ?? null, sameGroup),
     }));
+    peerSpread = computePoolPercentileSpread(poolStats, sameGroup);
   }
 
   return (
@@ -79,7 +81,7 @@ export default async function CompararPage({
             <div className="rounded-xl border border-border bg-surface p-5">
               <h2 className="font-medium mb-1">Perfil de percentiles — {POSITION_LABELS[sameGroup]}es</h2>
               <p className="text-xs text-muted mb-3">Percentil respecto al resto de la posición en la liga.</p>
-              <PlayerRadar series={radarSeries} />
+              <PeerRadar series={radarSeries} peers={peerSpread} />
             </div>
           ) : (
             <div className="rounded-xl border border-border bg-surface p-5">
