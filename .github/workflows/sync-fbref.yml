@@ -24,6 +24,9 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r scripts/requirements.txt
 
+      - name: Instalar navegador Chromium (Playwright)
+        run: playwright install --with-deps chromium
+
       - name: Correr sincronizacion
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

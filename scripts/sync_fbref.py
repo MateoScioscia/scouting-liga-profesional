@@ -9,22 +9,22 @@ tambien se puede correr en local:
     SUPABASE_URL=... SUPABASE_ANON_KEY=... ADMIN_PASSCODE=... SEASON=2026 \
         python scripts/sync_fbref.py
 
-No usa ningun paquete de scraping con navegador (Selenium/pydoll): FBref
-sirve estadisticas en tablas HTML con atributos `data-stat` estables, asi
-que alcanza con una sesion de requests con headers de navegador real +
-BeautifulSoup. Sin headers de navegador, FBref devuelve 403 directamente.
+FBref sirve estadisticas en tablas HTML con atributos `data-stat` estables,
+pero su Cloudflare bloquea pedidos HTTP simples (con requests) aunque tengan
+headers de navegador real -- devuelve 403 directo, probablemente por
+reputacion de IP de datacenter. Por eso esto usa Playwright con Chromium de
+verdad (misma idea que usa el paquete LanusStats con pydoll/undetected-
+chromedriver), que al menos resuelve el desafio JS/TLS de Cloudflare.
 """
 
 from __future__ import annotations
 
 import os
-import re
 import sys
-import time
-from html.parser import HTMLParser
 
 import requests
 from bs4 import BeautifulSoup, Comment
+from playwright.sync_api import sync_playwright
 
 COMP_ID = 21  # Primera Division (Liga Profesional Argentina) en FBref
 COMP_SLUG = "Primera-Division-Stats"
@@ -39,44 +39,34 @@ TABLES = {
     "keeper": ("keepers", "stats_keeper"),
 }
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9,es-AR;q=0.8,es;q=0.7",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "same-origin",
-    "Sec-Fetch-User": "?1",
-}
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
 
 CHUNK_SIZE = 150
 
-SESSION = requests.Session()
-SESSION.headers.update(HEADERS)
+CHALLENGE_MARKERS = ("just a moment", "attention required", "cf-browser-verification")
 
 
-def fetch(url: str, retries: int = 4, referer: str | None = None) -> str:
-    extra = {"Referer": referer} if referer else {}
+def load_page(page, url: str, table_id: str, referer: str | None, retries: int = 4) -> str:
     for attempt in range(retries):
-        resp = SESSION.get(url, headers=extra, timeout=30)
-        if resp.status_code == 200:
-            return resp.text
-        if resp.status_code in (429, 403) and attempt < retries - 1:
-            wait = 20 * (attempt + 1)
-            print(
-                f"  {resp.status_code} recibido, esperando {wait}s antes de reintentar...",
-                file=sys.stderr,
-            )
-            time.sleep(wait)
-            continue
-        resp.raise_for_status()
-    raise RuntimeError(f"No se pudo descargar {url} tras {retries} intentos")
+        resp = page.goto(url, wait_until="domcontentloaded", timeout=45000, referer=referer)
+        status = resp.status if resp else None
+        if status == 200:
+            page.wait_for_timeout(1500)
+            html_text = page.content()
+            lowered = html_text.lower()
+            if table_id in html_text or not any(m in lowered for m in CHALLENGE_MARKERS):
+                return html_text
+            print("  parece un desafio de Cloudflare, reintentando...", file=sys.stderr)
+        else:
+            print(f"  status {status} recibido", file=sys.stderr)
+        if attempt < retries - 1:
+            wait_ms = 20000 * (attempt + 1)
+            print(f"  esperando {wait_ms // 1000}s antes de reintentar...", file=sys.stderr)
+            page.wait_for_timeout(wait_ms)
+    raise RuntimeError(f"No se pudo cargar {url} tras {retries} intentos (ultimo status: {status})")
 
 
 def parse_table(html_text: str, table_id: str) -> list[dict]:
@@ -133,21 +123,34 @@ def merge_key(row: dict) -> tuple[str, str]:
 
 
 def scrape_all() -> list[dict]:
-    warmup_url = f"{BASE}/{COMP_SLUG}"
-    print(f"Calentando sesion: {warmup_url}")
-    fetch(warmup_url, referer="https://fbref.com/")
-    time.sleep(3)
-
     tables: dict[str, list[dict]] = {}
-    referer = warmup_url
-    for name, (segment, table_id) in TABLES.items():
-        url = f"{BASE}/{segment}/{COMP_SLUG}"
-        print(f"Descargando {name}: {url}")
-        html_text = fetch(url, referer=referer)
-        tables[name] = parse_table(html_text, table_id)
-        print(f"  {len(tables[name])} filas")
-        referer = url
-        time.sleep(4)  # FBref rate-limita agresivo; ser prudentes
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent=USER_AGENT,
+            locale="en-US",
+            viewport={"width": 1366, "height": 768},
+            extra_http_headers={"Accept-Language": "en-US,en;q=0.9,es-AR;q=0.8,es;q=0.7"},
+        )
+        page = context.new_page()
+
+        warmup_url = f"{BASE}/{COMP_SLUG}"
+        print(f"Calentando sesion: {warmup_url}")
+        load_page(page, warmup_url, "stats_standard", referer="https://fbref.com/")
+        page.wait_for_timeout(3000)
+
+        referer = warmup_url
+        for name, (segment, table_id) in TABLES.items():
+            url = f"{BASE}/{segment}/{COMP_SLUG}"
+            print(f"Descargando {name}: {url}")
+            html_text = load_page(page, url, table_id, referer=referer)
+            tables[name] = parse_table(html_text, table_id)
+            print(f"  {len(tables[name])} filas")
+            referer = url
+            page.wait_for_timeout(4000)  # FBref rate-limita agresivo; ser prudentes
+
+        browser.close()
 
     by_key = {
         name: {merge_key(r): r for r in rows} for name, rows in tables.items()
