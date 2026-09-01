@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { getPlayerById, getPositionSeasonStats, CURRENT_SEASON } from "@/lib/queries";
 import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
 import { computeMetricPercentiles, computeRadarValues } from "@/lib/percentiles";
+import { computeShotQualityProxy } from "@/lib/xgProxy";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import PlayerRadar from "@/components/PlayerRadar";
 import PercentileBars from "@/components/PercentileBars";
+import ShotQualityCard from "@/components/ShotQualityCard";
 import MarketValueChart from "@/components/MarketValueChart";
 import KpiCard from "@/components/KpiCard";
 
@@ -29,6 +31,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
     category: g.category,
     bars: computeMetricPercentiles(poolStats, currentStats, g.metrics),
   }));
+  const shotQuality = computeShotQualityProxy(poolStats, currentStats);
 
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
@@ -95,6 +98,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         </p>
         <PercentileBars groups={percentileGroups} />
       </div>
+
+      {shotQuality && <ShotQualityCard proxy={shotQuality} />}
 
       <div className="rounded-xl border border-border bg-surface p-5 overflow-x-auto scrollbar-thin">
         <h2 className="font-medium mb-3">Estadísticas completas — temporada {currentStats?.season ?? CURRENT_SEASON}</h2>
