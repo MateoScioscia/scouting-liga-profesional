@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayerById, getPositionSeasonStats, CURRENT_SEASON } from "@/lib/queries";
-import { KPI_METRICS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
-import { computeRadarValues } from "@/lib/percentiles";
+import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
+import { computeMetricPercentiles, computeRadarValues } from "@/lib/percentiles";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import PlayerRadar from "@/components/PlayerRadar";
+import PercentileBars from "@/components/PercentileBars";
 import MarketValueChart from "@/components/MarketValueChart";
 import KpiCard from "@/components/KpiCard";
 
@@ -24,6 +25,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const pool = player.position_group ? await getPositionSeasonStats(player.position_group) : [];
   const poolStats = pool.flatMap((p) => p.season_stats);
   const radarValues = computeRadarValues(poolStats, currentStats, positionGroup);
+  const percentileGroups = PERCENTILE_GROUPS[positionGroup].map((g) => ({
+    category: g.category,
+    bars: computeMetricPercentiles(poolStats, currentStats, g.metrics),
+  }));
 
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
@@ -79,6 +84,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <p className="text-xs text-muted mb-3">Evolución histórica cargada manualmente.</p>
           <MarketValueChart values={marketValues} />
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface p-5">
+        <h2 className="font-medium mb-1">Reporte de percentiles</h2>
+        <p className="text-xs text-muted mb-4">
+          Cada barra muestra el percentil de {player.full_name.split(" ")[0]} frente al resto de{" "}
+          {POSITION_LABELS[positionGroup].toLowerCase()}es de la liga (temporada {CURRENT_SEASON}). Más verde y más
+          larga = mejor ubicado en el grupo.
+        </p>
+        <PercentileBars groups={percentileGroups} />
       </div>
 
       <div className="rounded-xl border border-border bg-surface p-5 overflow-x-auto scrollbar-thin">

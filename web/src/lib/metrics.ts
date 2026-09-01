@@ -108,3 +108,97 @@ export const RADAR_METRICS: Record<PositionGroup, MetricDef[]> = {
 
 // Métricas para las que un valor más bajo es mejor (se invierte el percentil).
 export const LOWER_IS_BETTER = new Set(["faltas_p90", "goles_recibidos_p90", "faltas_cometidas", "goles_recibidos"]);
+
+export type MetricGroup = { category: string; metrics: MetricDef[] };
+
+// Reporte de percentiles: mismas métricas del radar + varias más, agrupadas
+// por categoría (estilo "scouting report" de barras horizontales).
+export const PERCENTILE_GROUPS: Record<PositionGroup, MetricGroup[]> = {
+  FWD: [
+    {
+      category: "Finalización",
+      metrics: [
+        { key: "goles_p90", label: "Goles cada 90'", short: "Gol/90" },
+        { key: "goles_sin_penal", label: "Goles sin penal", short: "G sin pen", format: "int" },
+        { key: "tiros_p90", label: "Tiros cada 90'", short: "Tiros/90" },
+        { key: "pct_tiros_al_arco", label: "% de tiros al arco", short: "%Arco", format: "pct" },
+        { key: "goles_por_tiro", label: "Goles por tiro", short: "G/Tiro" },
+      ],
+    },
+    {
+      category: "Creación",
+      metrics: [
+        { key: "asistencias_p90", label: "Asistencias cada 90'", short: "Ast/90" },
+        { key: "centros_p90", label: "Centros cada 90'", short: "Ctr/90" },
+        { key: "faltas_recibidas", label: "Faltas recibidas", short: "Flt rec", format: "int" },
+      ],
+    },
+    {
+      category: "Disciplina",
+      metrics: [{ key: "faltas_p90", label: "Faltas cada 90' (invertido)", short: "Flt/90" }],
+    },
+  ],
+  MID: [
+    {
+      category: "Creación",
+      metrics: [
+        { key: "asistencias_p90", label: "Asistencias cada 90'", short: "Ast/90" },
+        { key: "centros_p90", label: "Centros cada 90'", short: "Ctr/90" },
+        { key: "faltas_recibidas", label: "Faltas recibidas", short: "Flt rec", format: "int" },
+      ],
+    },
+    {
+      category: "Ataque",
+      metrics: [
+        { key: "goles_p90", label: "Goles cada 90'", short: "Gol/90" },
+        { key: "tiros_p90", label: "Tiros cada 90'", short: "Tiros/90" },
+      ],
+    },
+    {
+      category: "Defensa",
+      metrics: [
+        { key: "intercepciones_p90", label: "Intercepciones cada 90'", short: "Int/90" },
+        { key: "entradas_p90", label: "Entradas cada 90'", short: "Ent/90" },
+      ],
+    },
+    {
+      category: "Disciplina",
+      metrics: [{ key: "faltas_p90", label: "Faltas cada 90' (invertido)", short: "Flt/90" }],
+    },
+  ],
+  DEF: [
+    {
+      category: "Defensa",
+      metrics: [
+        { key: "intercepciones_p90", label: "Intercepciones cada 90'", short: "Int/90" },
+        { key: "entradas_p90", label: "Entradas cada 90'", short: "Ent/90" },
+      ],
+    },
+    {
+      category: "Aporte ofensivo",
+      metrics: [
+        { key: "goles_p90", label: "Goles cada 90'", short: "Gol/90" },
+        { key: "asistencias_p90", label: "Asistencias cada 90'", short: "Ast/90" },
+        { key: "centros_p90", label: "Centros cada 90'", short: "Ctr/90" },
+      ],
+    },
+    {
+      category: "Disciplina",
+      metrics: [{ key: "faltas_p90", label: "Faltas cada 90' (invertido)", short: "Flt/90" }],
+    },
+  ],
+  GK: [
+    {
+      category: "Paradas",
+      metrics: [
+        { key: "pct_atajadas", label: "% de atajadas", short: "%Ataj", format: "pct" },
+        { key: "goles_recibidos_p90", label: "Goles recibidos/90 (invertido)", short: "GR/90" },
+        { key: "pct_vallas_invictas", label: "% de vallas invictas", short: "%VI", format: "pct" },
+      ],
+    },
+    {
+      category: "Penales",
+      metrics: [{ key: "penales_atajados", label: "Penales atajados", short: "PenAt", format: "int" }],
+    },
+  ],
+};
