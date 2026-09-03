@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayerById, getPositionSeasonStats, getTeamMatchTotals, CURRENT_SEASON } from "@/lib/queries";
-import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
+import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_COLORS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
 import { computeMetricPercentiles, computePoolPercentileSpread, computeRadarValues } from "@/lib/percentiles";
 import { computeShotQualityProxy } from "@/lib/xgProxy";
 import { computePlayerRating, TIER_COLORS } from "@/lib/rating";
@@ -18,6 +18,8 @@ import RatingGauge from "@/components/RatingGauge";
 import InsightsCard from "@/components/InsightsCard";
 import SimilarPlayersCard from "@/components/SimilarPlayersCard";
 import SampleWarningBadge from "@/components/SampleWarningBadge";
+import Avatar from "@/components/Avatar";
+import TeamLogo from "@/components/TeamLogo";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -58,31 +60,40 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-semibold tracking-tight">{player.full_name}</h1>
-            {player.position_group && (
-              <span className="text-xs rounded-full bg-accent/15 text-accent-2 px-3 py-1 border border-accent/30">
-                {POSITION_LABELS[player.position_group]}
-              </span>
-            )}
-            {rating && (
-              <span
-                className="text-xs font-medium rounded-full px-3 py-1 border"
-                style={{
-                  color: TIER_COLORS[rating.tier],
-                  borderColor: `${TIER_COLORS[rating.tier]}66`,
-                  background: `${TIER_COLORS[rating.tier]}1a`,
-                }}
-              >
-                {rating.tier} · {Math.round(rating.overall)}
-              </span>
-            )}
+        <div className="flex items-start gap-4">
+          <Avatar
+            src={player.photo_url}
+            name={player.full_name}
+            color={player.position_group ? POSITION_COLORS[player.position_group] : "var(--muted)"}
+            size={64}
+          />
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-semibold tracking-tight">{player.full_name}</h1>
+              {player.position_group && (
+                <span className="text-xs rounded-full bg-accent/15 text-accent-2 px-3 py-1 border border-accent/30">
+                  {POSITION_LABELS[player.position_group]}
+                </span>
+              )}
+              {rating && (
+                <span
+                  className="text-xs font-medium rounded-full px-3 py-1 border"
+                  style={{
+                    color: TIER_COLORS[rating.tier],
+                    borderColor: `${TIER_COLORS[rating.tier]}66`,
+                    background: `${TIER_COLORS[rating.tier]}1a`,
+                  }}
+                >
+                  {rating.tier} · {Math.round(rating.overall)}
+                </span>
+              )}
+            </div>
+            <p className="text-muted mt-1 flex items-center gap-1.5 flex-wrap">
+              <TeamLogo src={player.teams?.logo_url} name={player.teams?.name ?? ""} size={16} />
+              {player.teams?.name ?? "Sin equipo"} · {player.nationality || "Nacionalidad no informada"}
+              {age ? ` · ${age} años` : ""}
+            </p>
           </div>
-          <p className="text-muted mt-1">
-            {player.teams?.name ?? "Sin equipo"} · {player.nationality || "Nacionalidad no informada"}
-            {age ? ` · ${age} años` : ""}
-          </p>
         </div>
         <Link
           href={`/comparar?ids=${player.id}`}

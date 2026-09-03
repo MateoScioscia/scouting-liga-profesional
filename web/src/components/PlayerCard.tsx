@@ -5,15 +5,8 @@ import { TIER_COLORS, type PlayerRating } from "@/lib/rating";
 import { computeSampleWarning } from "@/lib/sampleSize";
 import { formatNumber } from "@/lib/format";
 import SampleWarningBadge from "./SampleWarningBadge";
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-}
+import Avatar from "./Avatar";
+import TeamLogo from "./TeamLogo";
 
 export default function PlayerCard({
   player,
@@ -36,15 +29,13 @@ export default function PlayerCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold border-2"
-            style={{ borderColor: posColor, color: posColor }}
-          >
-            {initials(player.full_name)}
-          </div>
+          <Avatar src={player.photo_url} name={player.full_name} color={posColor} size={40} />
           <div className="min-w-0">
             <div className="font-medium truncate group-hover:text-accent-2 transition-colors">{player.full_name}</div>
-            <div className="text-xs text-muted truncate">{player.teams?.name ?? "Sin equipo"}</div>
+            <div className="text-xs text-muted truncate flex items-center gap-1.5">
+              <TeamLogo src={player.teams?.logo_url} name={player.teams?.name ?? ""} size={14} />
+              {player.teams?.name ?? "Sin equipo"}
+            </div>
           </div>
         </div>
         {rating && (

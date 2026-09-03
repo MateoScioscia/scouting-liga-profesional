@@ -22,6 +22,7 @@ type PlayerRow = {
   yellow_cards: number | null;
   red_cards: number | null;
   position_group: string;
+  photo_url: string | null;
   stats: Record<string, number>;
 };
 
@@ -70,6 +71,7 @@ export default function PlayersUploader() {
         yellow_cards: parseEsNumber(row[mapping["yellow_cards"]]),
         red_cards: parseEsNumber(row[mapping["red_cards"]]),
         position_group: inferPositionGroup(position),
+        photo_url: String(row[mapping["photo_url"]] ?? "").trim() || null,
         stats,
       };
     }).filter((r) => r.full_name);

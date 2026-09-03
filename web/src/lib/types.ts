@@ -3,6 +3,7 @@ export type PositionGroup = "GK" | "DEF" | "MID" | "FWD";
 export type Team = {
   id: string;
   name: string;
+  logo_url: string | null;
 };
 
 export type Player = {

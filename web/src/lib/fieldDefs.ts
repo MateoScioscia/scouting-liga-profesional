@@ -19,6 +19,7 @@ export const PLAYER_FIELDS: FieldDef[] = [
   { key: "yellow_cards", label: "Tarjetas amarillas", guesses: ["amarillas", "yellow_cards", "ta"] },
   { key: "red_cards", label: "Tarjetas rojas", guesses: ["rojas", "red_cards", "tr"] },
   { key: "edad", label: "Edad", guesses: ["edad", "age"] },
+  { key: "photo_url", label: "URL de foto (opcional)", guesses: ["photo_url", "foto", "photo", "imagen"] },
 ];
 
 export const MARKET_VALUE_FIELDS: FieldDef[] = [

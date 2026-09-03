@@ -17,7 +17,7 @@ export type PlayerFilters = {
 
 export async function getTeams() {
   const supabase = getSupabase();
-  const { data, error } = await supabase.from("teams").select("id, name").order("name");
+  const { data, error } = await supabase.from("teams").select("id, name, logo_url").order("name");
   if (error) throw error;
   return data;
 }
@@ -38,7 +38,7 @@ export async function getPlayers(filters: PlayerFilters, season = CURRENT_SEASON
   let query = supabase
     .from("players")
     .select(
-      "*, teams(id, name), season_stats:player_season_stats!inner(id, player_id, season, team_id, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
+      "*, teams(id, name, logo_url), season_stats:player_season_stats!inner(id, player_id, season, team_id, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
     )
     .eq("player_season_stats.season", season)
     .limit(1000);
@@ -65,7 +65,7 @@ export async function getPlayerIndex(season = CURRENT_SEASON): Promise<PlayerInd
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("players")
-    .select("id, full_name, position_group, teams(id, name), player_season_stats!inner(season)")
+    .select("id, full_name, position_group, teams(id, name, logo_url), player_season_stats!inner(season)")
     .eq("player_season_stats.season", season)
     .order("full_name")
     .limit(1000);
@@ -77,7 +77,7 @@ export async function getPlayerById(id: string) {
   const supabase = getSupabase();
   const { data: player, error } = await supabase
     .from("players")
-    .select("*, teams(id, name)")
+    .select("*, teams(id, name, logo_url)")
     .eq("id", id)
     .single();
   if (error) throw error;
@@ -125,7 +125,7 @@ export async function getTeamMatchTotals(season = CURRENT_SEASON): Promise<Recor
 export type PositionPoolPlayer = {
   id: string;
   full_name: string;
-  teams: { id: string; name: string } | null;
+  teams: Team | null;
   season_stats: PlayerSeasonStats[];
 };
 
@@ -137,7 +137,7 @@ export async function getPositionSeasonStats(
   const { data, error } = await supabase
     .from("players")
     .select(
-      "id, full_name, teams(id, name), season_stats:player_season_stats!inner(season, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
+      "id, full_name, teams(id, name, logo_url), season_stats:player_season_stats!inner(season, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
     )
     .eq("position_group", positionGroup)
     .eq("player_season_stats.season", season)
