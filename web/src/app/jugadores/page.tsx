@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getPlayers, getTeams, getNationalities, getTeamMatchTotals } from "@/lib/queries";
 import type { PlayerSeasonStats, PositionGroup } from "@/lib/types";
 import FilterBar from "@/components/FilterBar";
-import PlayerCardGrid from "@/components/PlayerCardGrid";
+import PlayerTable from "@/components/PlayerTable";
 import KpiCard from "@/components/KpiCard";
 import { getStat } from "@/lib/metrics";
 import { computePlayerRating, type PlayerRating } from "@/lib/rating";
@@ -77,7 +77,7 @@ export default async function JugadoresPage({
         <FilterBar teams={teams} nationalities={nationalities} />
       </Suspense>
 
-      <PlayerCardGrid players={players} ratings={ratings} teamMatchTotals={teamMatchTotals} />
+      <PlayerTable players={players} ratings={ratings} teamMatchTotals={teamMatchTotals} />
     </div>
   );
 }
