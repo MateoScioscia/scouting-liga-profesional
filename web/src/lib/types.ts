@@ -15,6 +15,8 @@ export type Player = {
   position_group: PositionGroup | null;
   team_id: string | null;
   photo_url: string | null;
+  ai_summary: string | null;
+  ai_summary_generated_at: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

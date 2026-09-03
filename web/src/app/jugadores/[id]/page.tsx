@@ -20,6 +20,8 @@ import SimilarPlayersCard from "@/components/SimilarPlayersCard";
 import SampleWarningBadge from "@/components/SampleWarningBadge";
 import Avatar from "@/components/Avatar";
 import TeamLogo from "@/components/TeamLogo";
+import AiSummaryCard from "@/components/AiSummaryCard";
+import { flagEmoji } from "@/lib/flags";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -56,54 +58,62 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
 
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
+  const posColor = player.position_group ? POSITION_COLORS[player.position_group] : "var(--muted)";
+  const flag = flagEmoji(player.nationality);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <Avatar
-            src={player.photo_url}
-            name={player.full_name}
-            color={player.position_group ? POSITION_COLORS[player.position_group] : "var(--muted)"}
-            size={64}
-          />
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-semibold tracking-tight">{player.full_name}</h1>
-              {player.position_group && (
-                <span className="text-xs rounded-full bg-accent/15 text-accent-2 px-3 py-1 border border-accent/30">
-                  {POSITION_LABELS[player.position_group]}
-                </span>
+      <div className="flex flex-col sm:flex-row items-start gap-5">
+        <Avatar src={player.photo_url} name={player.full_name} color={posColor} size={128} />
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-muted flex-wrap">
+              <TeamLogo src={player.teams?.logo_url} name={player.teams?.name ?? ""} size={18} />
+              {player.teams?.name ?? "Sin equipo"}
+              {flag && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="text-lg leading-none">{flag}</span>
+                </>
               )}
-              {rating && (
-                <span
-                  className="text-xs font-medium rounded-full px-3 py-1 border"
-                  style={{
-                    color: TIER_COLORS[rating.tier],
-                    borderColor: `${TIER_COLORS[rating.tier]}66`,
-                    background: `${TIER_COLORS[rating.tier]}1a`,
-                  }}
-                >
-                  {rating.tier} · {Math.round(rating.overall)}
-                </span>
-              )}
+              {player.nationality && <span>{player.nationality.replace(/^[a-z]{2}\s*/i, "")}</span>}
             </div>
-            <p className="text-muted mt-1 flex items-center gap-1.5 flex-wrap">
-              <TeamLogo src={player.teams?.logo_url} name={player.teams?.name ?? ""} size={16} />
-              {player.teams?.name ?? "Sin equipo"} · {player.nationality || "Nacionalidad no informada"}
-              {age ? ` · ${age} años` : ""}
-            </p>
+            <Link
+              href={`/comparar?ids=${player.id}`}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[#06170e] hover:bg-accent-2 transition-colors shrink-0"
+            >
+              Comparar jugador
+            </Link>
           </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-semibold tracking-tight">{player.full_name}</h1>
+            {player.position_group && (
+              <span className="text-xs rounded-full bg-accent/15 text-accent-2 px-3 py-1 border border-accent/30">
+                {POSITION_LABELS[player.position_group]}
+              </span>
+            )}
+            {rating && (
+              <span
+                className="text-xs font-medium rounded-full px-3 py-1 border"
+                style={{
+                  color: TIER_COLORS[rating.tier],
+                  borderColor: `${TIER_COLORS[rating.tier]}66`,
+                  background: `${TIER_COLORS[rating.tier]}1a`,
+                }}
+              >
+                {rating.tier} · {Math.round(rating.overall)}
+              </span>
+            )}
+          </div>
+
+          {age && <p className="text-muted text-sm">{age} años</p>}
         </div>
-        <Link
-          href={`/comparar?ids=${player.id}`}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-[#06170e] hover:bg-accent-2 transition-colors shrink-0"
-        >
-          Comparar jugador
-        </Link>
       </div>
 
       {sampleWarning && <SampleWarningBadge warning={sampleWarning} />}
+
+      {player.ai_summary && <AiSummaryCard summary={player.ai_summary} generatedAt={player.ai_summary_generated_at} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard label="Minutos jugados" value={formatNumber(currentStats?.minutes_played ?? undefined)} hint={`${currentStats?.matches_played ?? 0} partidos`} />

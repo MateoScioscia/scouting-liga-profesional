@@ -1,0 +1,31 @@
+name: Generate AI scouting summaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Temporada (ej. 2026)"
+        required: false
+        default: "2026"
+
+jobs:
+  generate-summaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install requests anthropic
+
+      - name: Generar resumenes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SEASON: ${{ inputs.season || '2026' }}
+        run: python scripts/generate_summaries.py
