@@ -5,6 +5,8 @@ import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_LABELS, formatMetric, getStat 
 import { computeMetricPercentiles, computePoolPercentileSpread, computeRadarValues } from "@/lib/percentiles";
 import { computeShotQualityProxy } from "@/lib/xgProxy";
 import { computePlayerRating, TIER_COLORS } from "@/lib/rating";
+import { computeInsights } from "@/lib/insights";
+import { computeSimilarPlayers } from "@/lib/similarity";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import PeerRadar from "@/components/PeerRadar";
 import PercentileBars from "@/components/PercentileBars";
@@ -12,6 +14,8 @@ import ShotQualityCard from "@/components/ShotQualityCard";
 import MarketValueChart from "@/components/MarketValueChart";
 import KpiCard from "@/components/KpiCard";
 import RatingGauge from "@/components/RatingGauge";
+import InsightsCard from "@/components/InsightsCard";
+import SimilarPlayersCard from "@/components/SimilarPlayersCard";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,6 +40,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   }));
   const shotQuality = computeShotQualityProxy(poolStats, currentStats);
   const rating = computePlayerRating(poolStats, currentStats, positionGroup);
+  const insights = computeInsights(percentileGroups.flatMap((g) => g.bars), shotQuality);
+  const similarPlayers = computeSimilarPlayers(pool, player.id, currentStats, positionGroup);
 
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
@@ -135,6 +141,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       </div>
 
       {shotQuality && <ShotQualityCard proxy={shotQuality} />}
+
+      <InsightsCard insights={insights} />
+
+      <SimilarPlayersCard players={similarPlayers} />
 
       <div className="rounded-xl border border-border bg-surface p-5 overflow-x-auto scrollbar-thin">
         <h2 className="font-medium mb-3">Estadísticas completas — temporada {currentStats?.season ?? CURRENT_SEASON}</h2>

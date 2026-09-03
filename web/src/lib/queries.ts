@@ -103,16 +103,26 @@ export async function getPlayerById(id: string) {
 
 // Trae, para un grupo posicional y temporada, todas las filas de stats
 // (liviano: sin datos del jugador) para poder calcular percentiles.
-export async function getPositionSeasonStats(positionGroup: PositionGroup, season = CURRENT_SEASON) {
+export type PositionPoolPlayer = {
+  id: string;
+  full_name: string;
+  teams: { id: string; name: string } | null;
+  season_stats: PlayerSeasonStats[];
+};
+
+export async function getPositionSeasonStats(
+  positionGroup: PositionGroup,
+  season = CURRENT_SEASON
+): Promise<PositionPoolPlayer[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("players")
     .select(
-      "id, season_stats:player_season_stats!inner(season, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
+      "id, full_name, teams(id, name), season_stats:player_season_stats!inner(season, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
     )
     .eq("position_group", positionGroup)
     .eq("player_season_stats.season", season)
     .limit(1000);
   if (error) throw error;
-  return (data ?? []) as unknown as { id: string; season_stats: PlayerSeasonStats[] }[];
+  return (data ?? []) as unknown as PositionPoolPlayer[];
 }
