@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlayerById, getPositionSeasonStats, CURRENT_SEASON } from "@/lib/queries";
+import { getPlayerById, getPositionSeasonStats, getTeamMatchTotals, CURRENT_SEASON } from "@/lib/queries";
 import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
 import { computeMetricPercentiles, computePoolPercentileSpread, computeRadarValues } from "@/lib/percentiles";
 import { computeShotQualityProxy } from "@/lib/xgProxy";
 import { computePlayerRating, TIER_COLORS } from "@/lib/rating";
 import { computeInsights } from "@/lib/insights";
 import { computeSimilarPlayers } from "@/lib/similarity";
+import { computeSampleWarning } from "@/lib/sampleSize";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import PeerRadar from "@/components/PeerRadar";
 import PercentileBars from "@/components/PercentileBars";
@@ -16,6 +17,7 @@ import KpiCard from "@/components/KpiCard";
 import RatingGauge from "@/components/RatingGauge";
 import InsightsCard from "@/components/InsightsCard";
 import SimilarPlayersCard from "@/components/SimilarPlayersCard";
+import SampleWarningBadge from "@/components/SampleWarningBadge";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,8 +32,15 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
 
   const currentStats = seasonStats.find((s) => s.season === CURRENT_SEASON) ?? seasonStats[0] ?? null;
   const positionGroup = player.position_group ?? "MID";
-  const pool = player.position_group ? await getPositionSeasonStats(player.position_group) : [];
+  const [pool, teamMatchTotals] = await Promise.all([
+    player.position_group ? getPositionSeasonStats(player.position_group) : Promise.resolve([]),
+    getTeamMatchTotals(),
+  ]);
   const poolStats = pool.flatMap((p) => p.season_stats);
+  const sampleWarning = computeSampleWarning(
+    currentStats?.matches_played,
+    player.team_id ? teamMatchTotals[player.team_id] : undefined
+  );
   const radarValues = computeRadarValues(poolStats, currentStats, positionGroup);
   const peerSpread = computePoolPercentileSpread(poolStats, positionGroup);
   const percentileGroups = PERCENTILE_GROUPS[positionGroup].map((g) => ({
@@ -82,6 +91,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           Comparar jugador
         </Link>
       </div>
+
+      {sampleWarning && <SampleWarningBadge warning={sampleWarning} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard label="Minutos jugados" value={formatNumber(currentStats?.minutes_played ?? undefined)} hint={`${currentStats?.matches_played ?? 0} partidos`} />

@@ -103,6 +103,25 @@ export async function getPlayerById(id: string) {
 
 // Trae, para un grupo posicional y temporada, todas las filas de stats
 // (liviano: sin datos del jugador) para poder calcular percentiles.
+// Partidos jugados máximos entre los jugadores de cada equipo esta
+// temporada — proxy de "partidos posibles" del equipo (no hay tabla de
+// fixtures), para poder avisar cuando un jugador tiene muestra chica.
+export async function getTeamMatchTotals(season = CURRENT_SEASON): Promise<Record<string, number>> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("player_season_stats")
+    .select("team_id, matches_played")
+    .eq("season", season);
+  if (error) throw error;
+  const totals: Record<string, number> = {};
+  for (const row of data ?? []) {
+    if (!row.team_id) continue;
+    const mp = row.matches_played ?? 0;
+    if (!totals[row.team_id] || mp > totals[row.team_id]) totals[row.team_id] = mp;
+  }
+  return totals;
+}
+
 export type PositionPoolPlayer = {
   id: string;
   full_name: string;

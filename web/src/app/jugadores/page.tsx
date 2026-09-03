@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getPlayers, getTeams, getNationalities } from "@/lib/queries";
+import { getPlayers, getTeams, getNationalities, getTeamMatchTotals } from "@/lib/queries";
 import type { PlayerSeasonStats, PositionGroup } from "@/lib/types";
 import FilterBar from "@/components/FilterBar";
 import PlayerCardGrid from "@/components/PlayerCardGrid";
@@ -21,7 +21,7 @@ export default async function JugadoresPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const [players, teams, nationalities, allPlayers] = await Promise.all([
+  const [players, teams, nationalities, allPlayers, teamMatchTotals] = await Promise.all([
     getPlayers({
       q: sp.q,
       position: sp.position as PositionGroup | undefined,
@@ -32,6 +32,7 @@ export default async function JugadoresPage({
     getTeams(),
     getNationalities(),
     getPlayers({}),
+    getTeamMatchTotals(),
   ]);
 
   const poolsByPosition: Record<PositionGroup, PlayerSeasonStats[]> = { GK: [], DEF: [], MID: [], FWD: [] };
@@ -76,7 +77,7 @@ export default async function JugadoresPage({
         <FilterBar teams={teams} nationalities={nationalities} />
       </Suspense>
 
-      <PlayerCardGrid players={players} ratings={ratings} />
+      <PlayerCardGrid players={players} ratings={ratings} teamMatchTotals={teamMatchTotals} />
     </div>
   );
 }

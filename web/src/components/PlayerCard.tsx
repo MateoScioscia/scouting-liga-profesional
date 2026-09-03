@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { PlayerListItem } from "@/lib/queries";
 import { POSITION_LABELS, POSITION_COLORS } from "@/lib/metrics";
 import { TIER_COLORS, type PlayerRating } from "@/lib/rating";
+import { computeSampleWarning } from "@/lib/sampleSize";
 import { formatNumber } from "@/lib/format";
+import SampleWarningBadge from "./SampleWarningBadge";
 
 function initials(name: string) {
   return name
@@ -13,10 +15,19 @@ function initials(name: string) {
     .join("");
 }
 
-export default function PlayerCard({ player, rating }: { player: PlayerListItem; rating: PlayerRating | null }) {
+export default function PlayerCard({
+  player,
+  rating,
+  teamMatches,
+}: {
+  player: PlayerListItem;
+  rating: PlayerRating | null;
+  teamMatches?: number;
+}) {
   const stats = player.season_stats[0];
   const posColor = player.position_group ? POSITION_COLORS[player.position_group] : "var(--muted)";
   const tierColor = rating ? TIER_COLORS[rating.tier] : "var(--muted)";
+  const sampleWarning = computeSampleWarning(stats?.matches_played, teamMatches);
 
   return (
     <Link
@@ -60,6 +71,7 @@ export default function PlayerCard({ player, rating }: { player: PlayerListItem;
             {Math.round(rating.overall)}
           </span>
         )}
+        {sampleWarning && <SampleWarningBadge warning={sampleWarning} compact />}
       </div>
 
       {rating && (

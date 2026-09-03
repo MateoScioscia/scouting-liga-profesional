@@ -17,9 +17,11 @@ const SORTS: { key: SortKey; label: string }[] = [
 export default function PlayerCardGrid({
   players,
   ratings,
+  teamMatchTotals,
 }: {
   players: PlayerListItem[];
   ratings: Record<string, PlayerRating | null>;
+  teamMatchTotals: Record<string, number>;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("rating");
 
@@ -64,7 +66,12 @@ export default function PlayerCardGrid({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {sorted.map((p) => (
-          <PlayerCard key={p.id} player={p} rating={ratings[p.id] ?? null} />
+          <PlayerCard
+            key={p.id}
+            player={p}
+            rating={ratings[p.id] ?? null}
+            teamMatches={p.team_id ? teamMatchTotals[p.team_id] : undefined}
+          />
         ))}
       </div>
     </div>
