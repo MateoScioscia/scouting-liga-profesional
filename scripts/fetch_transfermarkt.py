@@ -49,6 +49,10 @@ USER_AGENT = (
 CHUNK_SIZE = 150
 NAV_TIMEOUT = 30000
 CHALLENGE_WAIT_MS = 4000
+# El lote completo tarda horas (2 navegaciones por jugador); subimos a
+# Supabase cada tantos jugadores en vez de esperar al final, para no
+# perder el progreso si el proceso se corta a mitad de camino.
+SAVE_EVERY = 50
 
 # Transfermarkt publica el valor en EUR; convertimos a USD con un tipo de
 # cambio aproximado (no en vivo) porque el resto de la app usa dolares.
@@ -227,9 +231,16 @@ def main() -> None:
             if i % 25 == 0:
                 print(f"  ...{i}/{len(players)} procesados")
 
+            if i % SAVE_EVERY == 0:
+                print(f"  -- guardando progreso ({len(player_updates)} contratos, {len(market_value_rows)} valores) --")
+                push_player_updates(supabase_url, write_headers, passcode, player_updates)
+                push_market_values(supabase_url, write_headers, passcode, market_value_rows)
+                player_updates = []
+                market_value_rows = []
+
         browser.close()
 
-    print(f"Con contrato: {len(player_updates)} | Con valor de mercado: {len(market_value_rows)}")
+    print(f"Restantes sin guardar: {len(player_updates)} contratos, {len(market_value_rows)} valores")
     push_player_updates(supabase_url, write_headers, passcode, player_updates)
     push_market_values(supabase_url, write_headers, passcode, market_value_rows)
     print("Listo.")
