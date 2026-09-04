@@ -1,0 +1,33 @@
+name: Fetch contract/market value from Transfermarkt
+
+on:
+  workflow_dispatch:
+    inputs:
+      player_name:
+        description: "Opcional: nombre (o parte) de un jugador puntual, para probar sin correr el lote completo"
+        required: false
+        default: ""
+
+jobs:
+  fetch-transfermarkt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install requests beautifulsoup4 lxml playwright
+
+      - name: Instalar navegador Chromium (Playwright)
+        run: playwright install --with-deps chromium
+
+      - name: Buscar contrato y valor de mercado
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
+          PLAYER_FILTER: ${{ inputs.player_name }}
+        run: python scripts/fetch_transfermarkt.py
