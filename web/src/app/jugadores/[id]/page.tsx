@@ -8,7 +8,7 @@ import { computePlayerRating, TIER_COLORS } from "@/lib/rating";
 import { computeInsights } from "@/lib/insights";
 import { computeSimilarPlayers } from "@/lib/similarity";
 import { computeSampleWarning } from "@/lib/sampleSize";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
+import { formatContractRemaining, formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import PeerRadar from "@/components/PeerRadar";
 import PercentileBars from "@/components/PercentileBars";
 import ShotQualityCard from "@/components/ShotQualityCard";
@@ -20,7 +20,8 @@ import SimilarPlayersCard from "@/components/SimilarPlayersCard";
 import SampleWarningBadge from "@/components/SampleWarningBadge";
 import Avatar from "@/components/Avatar";
 import TeamLogo from "@/components/TeamLogo";
-import AiSummaryCard from "@/components/AiSummaryCard";
+import SummaryCard from "@/components/SummaryCard";
+import { computeSummaryText } from "@/lib/summary";
 import Flag from "@/components/Flag";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -55,6 +56,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const rating = computePlayerRating(poolStats, currentStats, positionGroup);
   const insights = computeInsights(percentileGroups.flatMap((g) => g.bars), shotQuality);
   const similarPlayers = computeSimilarPlayers(pool, player.id, currentStats, positionGroup);
+  const summaryText = rating
+    ? computeSummaryText(
+        player.full_name.split(" ")[0],
+        positionGroup,
+        rating.tier,
+        rating.overall,
+        insights,
+        !!sampleWarning
+      )
+    : null;
 
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
@@ -62,9 +73,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const nationalityCode = player.nationality ? player.nationality.replace(/^[a-z]{2}\s*/i, "") : "";
   const teamMatches = player.team_id ? teamMatchTotals[player.team_id] : undefined;
   const heightLabel = player.height_cm ? `${(player.height_cm / 100).toFixed(2).replace(".", ",")}m` : "—";
-  const contractYearsLeft = player.contract_until
-    ? Math.max(0, Math.round((new Date(player.contract_until).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000)))
-    : null;
+  const contractLabel = formatContractRemaining(player.contract_until);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 flex flex-col gap-6">
@@ -120,7 +129,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
               value={`${currentStats?.matches_played ?? 0}`}
               hint={teamMatches ? `de ${teamMatches} posibles` : undefined}
             />
-            <KpiCard label="Contrato" value={contractYearsLeft !== null ? `${contractYearsLeft} años` : "—"} />
+            <KpiCard label="Contrato" value={contractLabel} />
             <KpiCard
               label="Valor"
               value={latestValue ? formatCurrency(latestValue.value_amount, latestValue.currency) : "—"}
@@ -131,7 +140,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
 
       {sampleWarning && <SampleWarningBadge warning={sampleWarning} />}
 
-      {player.ai_summary && <AiSummaryCard summary={player.ai_summary} generatedAt={player.ai_summary_generated_at} />}
+      {summaryText && <SummaryCard summary={summaryText} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard label="Minutos jugados" value={formatNumber(currentStats?.minutes_played ?? undefined)} hint={`${currentStats?.matches_played ?? 0} partidos`} />

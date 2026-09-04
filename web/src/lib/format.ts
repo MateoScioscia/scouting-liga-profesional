@@ -16,6 +16,19 @@ export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" });
 }
 
+// Muestra el contrato restante en meses si falta menos de un año (mas
+// preciso que redondear a "0 años"), y en años enteros si falta mas.
+export function formatContractRemaining(contractUntil: string | null): string {
+  if (!contractUntil) return "—";
+  const diffMs = new Date(contractUntil).getTime() - Date.now();
+  if (diffMs <= 0) return "Vencido";
+  const totalMonths = diffMs / (1000 * 3600 * 24 * 30.44);
+  if (totalMonths < 12) {
+    return `${Math.max(1, Math.round(totalMonths))} meses`;
+  }
+  return `${Math.round(totalMonths / 12)} años`;
+}
+
 export function percentile(sortedAsc: number[], value: number): number {
   if (sortedAsc.length === 0) return 0;
   let below = 0;

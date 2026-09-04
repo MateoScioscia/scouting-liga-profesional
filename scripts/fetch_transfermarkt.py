@@ -50,6 +50,10 @@ CHUNK_SIZE = 150
 NAV_TIMEOUT = 30000
 CHALLENGE_WAIT_MS = 4000
 
+# Transfermarkt publica el valor en EUR; convertimos a USD con un tipo de
+# cambio aproximado (no en vivo) porque el resto de la app usa dolares.
+EUR_TO_USD_RATE = 1.08
+
 
 def parse_money(text: str) -> float | None:
     m = re.search(r"€\s*([\d.,]+)\s*([kKmM]?)", text)
@@ -86,32 +90,41 @@ def find_profile_url(page, name: str) -> str | None:
     return href if href.startswith("http") else f"{BASE}{href}"
 
 
-def scrape_profile(page, url: str) -> dict:
+CONTRACT_TEXT_RE = re.compile(
+    r"contract expires:?\s*([A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}|\d{1,2}\.\d{1,2}\.\d{4})", re.I
+)
+
+
+def scrape_profile(page, url: str, debug: bool = False) -> dict:
     page.goto(url, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
     page.wait_for_timeout(CHALLENGE_WAIT_MS)
     soup = BeautifulSoup(page.content(), "lxml")
 
     result: dict = {}
 
-    page_text = soup.get_text(" ", strip=True).lower()
-    if "position" not in page_text:
+    page_text = soup.get_text(" ", strip=True)
+    if "position" not in page_text.lower():
         return result  # no tiene pinta de ficha de jugador de futbol
 
     value_el = soup.select_one(".data-header__market-value-wrapper")
     if value_el:
-        amount = parse_money(value_el.get_text(" ", strip=True))
-        if amount:
-            result["value_amount"] = amount
-            result["currency"] = "EUR"
+        amount_eur = parse_money(value_el.get_text(" ", strip=True))
+        if amount_eur:
+            result["value_amount"] = round(amount_eur * EUR_TO_USD_RATE, 2)
+            result["currency"] = "USD"
 
-    for label in soup.select(".info-table__content--regular"):
-        if "contract expires" in label.get_text(strip=True).lower():
-            sibling = label.find_next_sibling(class_="info-table__content--bold")
-            if sibling:
-                iso = parse_contract_date(sibling.get_text(strip=True))
-                if iso:
-                    result["contract_until"] = iso
-            break
+    # Buscamos por texto visible ("Contract expires: ...") en vez de solo
+    # por clases CSS -- Transfermarkt cambia los nombres de clase seguido,
+    # pero el texto es mas estable.
+    m = CONTRACT_TEXT_RE.search(page_text)
+    if m:
+        iso = parse_contract_date(m.group(1))
+        if iso:
+            result["contract_until"] = iso
+    elif debug:
+        idx = page_text.lower().find("contract")
+        snippet = page_text[max(0, idx - 30) : idx + 120] if idx != -1 else "(no aparece 'contract' en la pagina)"
+        print(f"    [debug] no matcheo contrato. Contexto: {snippet!r}")
 
     return result
 
@@ -184,7 +197,7 @@ def main() -> None:
                 if not profile_url:
                     print(f"  --  {player['full_name']}: sin resultado de busqueda")
                     continue
-                data = scrape_profile(page, profile_url)
+                data = scrape_profile(page, profile_url, debug=bool(PLAYER_FILTER))
             except Exception as exc:  # noqa: BLE001 - seguimos con el resto si uno falla
                 print(f"  ERROR con {player['full_name']}: {exc}", file=sys.stderr)
                 continue
@@ -198,7 +211,7 @@ def main() -> None:
                         "nationality": player.get("nationality") or "",
                         "value_date": today,
                         "value_amount": data["value_amount"],
-                        "currency": data.get("currency", "EUR"),
+                        "currency": data.get("currency", "USD"),
                         "source": "transfermarkt",
                     }
                 )
