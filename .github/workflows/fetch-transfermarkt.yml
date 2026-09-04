@@ -7,6 +7,10 @@ on:
         description: "Opcional: nombre (o parte) de un jugador puntual, para probar sin correr el lote completo"
         required: false
         default: ""
+      max_players:
+        description: "Opcional: tope de jugadores a procesar en esta corrida (para no sostener la sesion tanto tiempo que Transfermarkt la bloquee)"
+        required: false
+        default: ""
 
 jobs:
   fetch-transfermarkt:
@@ -30,4 +34,5 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
           PLAYER_FILTER: ${{ inputs.player_name }}
+          MAX_PLAYERS: ${{ inputs.max_players }}
         run: python scripts/fetch_transfermarkt.py

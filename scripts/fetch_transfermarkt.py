@@ -40,6 +40,14 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
 PLAYER_FILTER = os.environ.get("PLAYER_FILTER", "").strip().lower()
+# Corridas largas (cientos de jugadores en la misma sesion de browser)
+# terminan gatillando el anti-bot de Transfermarkt a mitad de camino: deja
+# de devolver resultados de busqueda reales (parece "sin resultado" para
+# jugadores que si tienen ficha) y se queda asi el resto de la corrida.
+# Limitando cuantos jugadores procesa cada corrida y repitiendo el workflow
+# varias veces (cada uno con un runner/IP nuevo) evitamos sostener una
+# sesion lo bastante larga como para que eso pase.
+MAX_PLAYERS = int(os.environ.get("MAX_PLAYERS", "0") or "0") or None
 
 BASE = "https://www.transfermarkt.com"
 USER_AGENT = (
@@ -151,7 +159,9 @@ def fetch_players(supabase_url: str, headers: dict) -> list[dict]:
     if PLAYER_FILTER:
         filter_clause = f"full_name=ilike.*{quote(PLAYER_FILTER)}*"
     else:
-        filter_clause = "contract_until=is.null"
+        filter_clause = "contract_until=is.null&order=full_name.asc"
+        if MAX_PLAYERS:
+            filter_clause += f"&limit={MAX_PLAYERS}"
     resp = requests.get(
         f"{supabase_url}/rest/v1/players?select=id,full_name,nationality&{filter_clause}",
         headers=headers,
