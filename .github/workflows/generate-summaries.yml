@@ -7,6 +7,10 @@ on:
         description: "Temporada (ej. 2026)"
         required: false
         default: "2026"
+      player_name:
+        description: "Opcional: nombre (o parte) de un jugador puntual, para probar sin correr el lote completo"
+        required: false
+        default: ""
 
 jobs:
   generate-summaries:
@@ -28,4 +32,5 @@ jobs:
           ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SEASON: ${{ inputs.season || '2026' }}
+          PLAYER_FILTER: ${{ inputs.player_name }}
         run: python scripts/generate_summaries.py

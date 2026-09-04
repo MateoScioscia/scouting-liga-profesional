@@ -25,6 +25,7 @@ import anthropic
 import requests
 
 SEASON = os.environ.get("SEASON", "2026")
+PLAYER_FILTER = os.environ.get("PLAYER_FILTER", "").strip().lower()
 MODEL = "claude-haiku-4-5-20251001"
 CHUNK_SIZE = 150
 REQUEST_DELAY = 0.2
@@ -180,8 +181,14 @@ def main() -> None:
     client = anthropic.Anthropic(api_key=anthropic_key)
 
     rows = fetch_rows(supabase_url, read_headers)
-    pending = [r for r in rows if not r["players"].get("ai_summary")]
-    print(f"{len(rows)} jugadores con stats {SEASON}, {len(pending)} sin resumen todavia.")
+    if PLAYER_FILTER:
+        # Corrida puntual para probar/forzar un refresh de un jugador --
+        # ignora si ya tiene resumen.
+        pending = [r for r in rows if PLAYER_FILTER in r["players"]["full_name"].lower()]
+        print(f"PLAYER_FILTER={PLAYER_FILTER!r}: {len(pending)} jugador(es) matcheados.")
+    else:
+        pending = [r for r in rows if not r["players"].get("ai_summary")]
+    print(f"{len(rows)} jugadores con stats {SEASON}, {len(pending)} para generar.")
 
     pools: dict[str, list[dict]] = {}
     for r in rows:
@@ -202,6 +209,11 @@ def main() -> None:
         time.sleep(REQUEST_DELAY)
 
     print(f"Resumenes generados: {len(updates)}")
+    if pending and not updates:
+        raise RuntimeError(
+            "Fallaron TODOS los intentos -- probablemente ANTHROPIC_API_KEY esta vacia o mal "
+            "configurada (revisar el error de arriba). Cortamos sin marcar el job como exitoso."
+        )
     push_summaries(supabase_url, write_headers, passcode, updates)
     print("Listo.")
 
