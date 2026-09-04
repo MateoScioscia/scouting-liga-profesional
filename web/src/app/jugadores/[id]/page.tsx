@@ -21,7 +21,7 @@ import SampleWarningBadge from "@/components/SampleWarningBadge";
 import Avatar from "@/components/Avatar";
 import TeamLogo from "@/components/TeamLogo";
 import AiSummaryCard from "@/components/AiSummaryCard";
-import { flagEmoji } from "@/lib/flags";
+import Flag from "@/components/Flag";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -59,7 +59,12 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const age = getStat(currentStats, "edad");
   const latestValue = marketValues[marketValues.length - 1];
   const posColor = player.position_group ? POSITION_COLORS[player.position_group] : "var(--muted)";
-  const flag = flagEmoji(player.nationality);
+  const nationalityCode = player.nationality ? player.nationality.replace(/^[a-z]{2}\s*/i, "") : "";
+  const teamMatches = player.team_id ? teamMatchTotals[player.team_id] : undefined;
+  const heightLabel = player.height_cm ? `${(player.height_cm / 100).toFixed(2).replace(".", ",")}m` : "—";
+  const contractYearsLeft = player.contract_until
+    ? Math.max(0, Math.round((new Date(player.contract_until).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000)))
+    : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 flex flex-col gap-6">
@@ -70,13 +75,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             <div className="flex items-center gap-2 text-sm text-muted flex-wrap">
               <TeamLogo src={player.teams?.logo_url} name={player.teams?.name ?? ""} size={18} />
               {player.teams?.name ?? "Sin equipo"}
-              {flag && (
+              {nationalityCode && (
                 <>
                   <span aria-hidden>·</span>
-                  <span className="text-lg leading-none">{flag}</span>
+                  <Flag nationality={player.nationality} size={16} />
+                  <span>{nationalityCode}</span>
                 </>
               )}
-              {player.nationality && <span>{player.nationality.replace(/^[a-z]{2}\s*/i, "")}</span>}
             </div>
             <Link
               href={`/comparar?ids=${player.id}`}
@@ -107,7 +112,20 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             )}
           </div>
 
-          {age && <p className="text-muted text-sm">{age} años</p>}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-1">
+            <KpiCard label="Edad" value={age ? `${age}` : "—"} />
+            <KpiCard label="Estatura" value={heightLabel} />
+            <KpiCard
+              label="Partidos"
+              value={`${currentStats?.matches_played ?? 0}`}
+              hint={teamMatches ? `de ${teamMatches} posibles` : undefined}
+            />
+            <KpiCard label="Contrato" value={contractYearsLeft !== null ? `${contractYearsLeft} años` : "—"} />
+            <KpiCard
+              label="Valor"
+              value={latestValue ? formatCurrency(latestValue.value_amount, latestValue.currency) : "—"}
+            />
+          </div>
         </div>
       </div>
 

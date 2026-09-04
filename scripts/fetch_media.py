@@ -18,6 +18,10 @@ busqueda mas relevante es claramente un futbolista (el extracto menciona
 "futbolista"/"futbol") y no una pagina de desambiguacion -- si hay duda, se
 deja sin foto en vez de arriesgar una foto de la persona equivocada. Los que
 queden sin foto se pueden cargar a mano despues (columna `photo_url`).
+
+Tambien intenta la estatura (`height_cm`) via Wikidata (propiedad P2048),
+reusando el mismo match de Wikipedia que la foto -- Wikidata es un origen
+estructurado (no HTML a parsear) y no tiene proteccion anti-bot.
 """
 
 from __future__ import annotations
@@ -29,29 +33,32 @@ import time
 import requests
 
 WIKI_API = "https://es.wikipedia.org/w/api.php"
+WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 USER_AGENT = "ScoutingLPFBot/1.0 (https://github.com/MateoScioscia/scouting-liga-profesional; contacto via GitHub)"
 REQUEST_DELAY = 0.3
 CHUNK_SIZE = 150
 
 FOOTBALLER_HINTS = ("futbolista", "futbol")
 DISAMBIGUATION_HINTS = ("puede referirse a", "puede referirse:")
+HEIGHT_PROPERTY = "P2048"  # "estatura" en Wikidata
 
 
-def wiki_search_image(query: str, require_footballer: bool) -> str | None:
-    """Busca en Wikipedia y devuelve la miniatura de la pagina mas relevante,
-    o None si no hay resultado confiable."""
+def wiki_search_page(query: str, require_footballer: bool) -> dict | None:
+    """Busca en Wikipedia y devuelve {photo_url, wikibase_item} de la pagina
+    mas relevante, o None si no hay resultado confiable."""
     params = {
         "action": "query",
         "format": "json",
         "generator": "search",
         "gsrsearch": query,
         "gsrlimit": 1,
-        "prop": "pageimages|extracts",
+        "prop": "pageimages|extracts|pageprops",
         "piprop": "thumbnail",
         "pithumbsize": 400,
         "exintro": 1,
         "explaintext": 1,
         "exchars": 400,
+        "ppprop": "wikibase_item",
     }
     resp = requests.get(WIKI_API, params=params, headers={"User-Agent": USER_AGENT}, timeout=20)
     resp.raise_for_status()
@@ -67,7 +74,30 @@ def wiki_search_image(query: str, require_footballer: bool) -> str | None:
         return None
 
     thumbnail = page.get("thumbnail") or {}
-    return thumbnail.get("source")
+    return {
+        "photo_url": thumbnail.get("source"),
+        "wikibase_item": (page.get("pageprops") or {}).get("wikibase_item"),
+    }
+
+
+def wiki_get_height_cm(wikibase_item: str | None) -> int | None:
+    if not wikibase_item:
+        return None
+    resp = requests.get(
+        WIKIDATA_API,
+        params={"action": "wbgetclaims", "entity": wikibase_item, "property": HEIGHT_PROPERTY, "format": "json"},
+        headers={"User-Agent": USER_AGENT},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    claims = (resp.json().get("claims") or {}).get(HEIGHT_PROPERTY) or []
+    if not claims:
+        return None
+    try:
+        amount = claims[0]["mainsnak"]["datavalue"]["value"]["amount"]
+        return round(float(amount.lstrip("+")) * 100)
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def fetch_teams(supabase_url: str, headers: dict) -> list[dict]:
@@ -78,7 +108,9 @@ def fetch_teams(supabase_url: str, headers: dict) -> list[dict]:
 
 def fetch_players(supabase_url: str, headers: dict) -> list[dict]:
     resp = requests.get(
-        f"{supabase_url}/rest/v1/players?select=id,full_name,photo_url&photo_url=is.null",
+        f"{supabase_url}/rest/v1/players"
+        "?select=id,full_name,photo_url,height_cm"
+        "&or=(photo_url.is.null,height_cm.is.null)",
         headers=headers,
         timeout=30,
     )
@@ -118,27 +150,38 @@ def main() -> None:
     print(f"Buscando escudos para {len(teams)} equipos...")
     team_updates: list[dict] = []
     for team in teams:
-        url = wiki_search_image(f"{team['name']} club de futbol escudo", require_footballer=False)
+        page = wiki_search_page(f"{team['name']} club de futbol escudo", require_footballer=False)
         time.sleep(REQUEST_DELAY)
-        if url:
-            team_updates.append({"id": team["id"], "logo_url": url})
+        if page and page.get("photo_url"):
+            team_updates.append({"id": team["id"], "logo_url": page["photo_url"]})
             print(f"  OK  {team['name']}")
         else:
             print(f"  --  {team['name']} (sin resultado confiable)")
 
     players = fetch_players(supabase_url, read_headers)
-    print(f"Buscando fotos para {len(players)} jugadores sin foto...")
+    print(f"Buscando fotos/estatura para {len(players)} jugadores incompletos...")
     player_updates: list[dict] = []
+    heights_found = 0
     for i, player in enumerate(players, 1):
-        url = wiki_search_image(f"{player['full_name']} futbolista argentino", require_footballer=True)
+        page = wiki_search_page(f"{player['full_name']} futbolista argentino", require_footballer=True)
         time.sleep(REQUEST_DELAY)
-        if url:
-            player_updates.append({"id": player["id"], "photo_url": url})
+        update: dict = {}
+        if page:
+            if page.get("photo_url") and not player.get("photo_url"):
+                update["photo_url"] = page["photo_url"]
+            if not player.get("height_cm"):
+                height = wiki_get_height_cm(page.get("wikibase_item"))
+                time.sleep(REQUEST_DELAY)
+                if height:
+                    update["height_cm"] = height
+                    heights_found += 1
+        if update:
+            player_updates.append({"id": player["id"], **update})
         if i % 50 == 0:
-            print(f"  ...{i}/{len(players)} procesados, {len(player_updates)} con foto")
+            print(f"  ...{i}/{len(players)} procesados, {len(player_updates)} con algun dato nuevo")
 
     print(f"Escudos encontrados: {len(team_updates)}/{len(teams)}")
-    print(f"Fotos encontradas: {len(player_updates)}/{len(players)}")
+    print(f"Jugadores con algun dato nuevo: {len(player_updates)}/{len(players)} (estatura: {heights_found})")
 
     push_media(supabase_url, write_headers, passcode, player_updates, team_updates)
     print("Listo.")

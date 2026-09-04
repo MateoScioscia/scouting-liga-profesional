@@ -23,6 +23,8 @@ type PlayerRow = {
   red_cards: number | null;
   position_group: string;
   photo_url: string | null;
+  height_cm: number | null;
+  contract_until: string | null;
   stats: Record<string, number>;
 };
 
@@ -72,6 +74,8 @@ export default function PlayersUploader() {
         red_cards: parseEsNumber(row[mapping["red_cards"]]),
         position_group: inferPositionGroup(position),
         photo_url: String(row[mapping["photo_url"]] ?? "").trim() || null,
+        height_cm: parseEsNumber(row[mapping["height_cm"]]),
+        contract_until: String(row[mapping["contract_until"]] ?? "").trim() || null,
         stats,
       };
     }).filter((r) => r.full_name);
