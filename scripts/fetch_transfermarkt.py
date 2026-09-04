@@ -70,7 +70,7 @@ def parse_money(text: str) -> float | None:
 
 def parse_contract_date(text: str) -> str | None:
     text = text.strip()
-    for fmt in ("%b %d, %Y", "%d.%m.%Y"):
+    for fmt in ("%b %d, %Y", "%d.%m.%Y", "%d/%m/%Y"):
         try:
             return datetime.strptime(text, fmt).date().isoformat()
         except ValueError:
@@ -91,7 +91,7 @@ def find_profile_url(page, name: str) -> str | None:
 
 
 CONTRACT_TEXT_RE = re.compile(
-    r"contract expires:?\s*([A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}|\d{1,2}\.\d{1,2}\.\d{4})", re.I
+    r"contract expires:?\s*([A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}|\d{1,2}[./]\d{1,2}[./]\d{4})", re.I
 )
 
 
