@@ -14,7 +14,13 @@ jobs:
           python-version: "3.12"
 
       - name: Instalar dependencias
-        run: pip install requests
+        run: pip install requests playwright
 
-      - name: Probar acceso a Transfermarkt
+      - name: Instalar navegador Chromium (Playwright)
+        run: playwright install --with-deps chromium
+
+      - name: Probar acceso a Transfermarkt (requests simple)
         run: python scripts/test_transfermarkt.py
+
+      - name: Probar acceso a Transfermarkt (navegador real)
+        run: python scripts/test_transfermarkt_playwright.py
