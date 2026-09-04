@@ -122,9 +122,15 @@ def scrape_profile(page, url: str, debug: bool = False) -> dict:
         if iso:
             result["contract_until"] = iso
     elif debug:
-        idx = page_text.lower().find("contract")
-        snippet = page_text[max(0, idx - 30) : idx + 120] if idx != -1 else "(no aparece 'contract' en la pagina)"
-        print(f"    [debug] no matcheo contrato. Contexto: {snippet!r}")
+        lower = page_text.lower()
+        occurrences = [mo.start() for mo in re.finditer("contract", lower)]
+        if not occurrences:
+            print("    [debug] no matcheo contrato. 'contract' no aparece en la pagina.")
+        else:
+            print(f"    [debug] no matcheo contrato. {len(occurrences)} apariciones de 'contract':")
+            for idx in occurrences[:8]:
+                snippet = page_text[max(0, idx - 30) : idx + 120]
+                print(f"      - {snippet!r}")
 
     return result
 
