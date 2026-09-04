@@ -29,8 +29,11 @@ from __future__ import annotations
 import os
 import sys
 import time
+from urllib.parse import quote
 
 import requests
+
+PLAYER_FILTER = os.environ.get("PLAYER_FILTER", "").strip()
 
 WIKI_API = "https://es.wikipedia.org/w/api.php"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
@@ -107,10 +110,14 @@ def fetch_teams(supabase_url: str, headers: dict) -> list[dict]:
 
 
 def fetch_players(supabase_url: str, headers: dict) -> list[dict]:
+    if PLAYER_FILTER:
+        # Corrida puntual para un jugador (o varios que matcheen el nombre) --
+        # ignora si ya tiene foto/estatura, para poder forzar un refresh.
+        filter_clause = f"full_name=ilike.*{quote(PLAYER_FILTER)}*"
+    else:
+        filter_clause = "or=(photo_url.is.null,height_cm.is.null)"
     resp = requests.get(
-        f"{supabase_url}/rest/v1/players"
-        "?select=id,full_name,photo_url,height_cm"
-        "&or=(photo_url.is.null,height_cm.is.null)",
+        f"{supabase_url}/rest/v1/players?select=id,full_name,photo_url,height_cm&{filter_clause}",
         headers=headers,
         timeout=30,
     )
@@ -146,17 +153,21 @@ def main() -> None:
     read_headers = {"apikey": anon_key, "Authorization": f"Bearer {anon_key}"}
     write_headers = {**read_headers, "Content-Type": "application/json"}
 
-    teams = fetch_teams(supabase_url, read_headers)
-    print(f"Buscando escudos para {len(teams)} equipos...")
     team_updates: list[dict] = []
-    for team in teams:
-        page = wiki_search_page(f"{team['name']} club de futbol escudo", require_footballer=False)
-        time.sleep(REQUEST_DELAY)
-        if page and page.get("photo_url"):
-            team_updates.append({"id": team["id"], "logo_url": page["photo_url"]})
-            print(f"  OK  {team['name']}")
-        else:
-            print(f"  --  {team['name']} (sin resultado confiable)")
+    teams: list[dict] = []
+    if PLAYER_FILTER:
+        print(f"PLAYER_FILTER={PLAYER_FILTER!r}: corrida puntual, salteo la busqueda de escudos.")
+    else:
+        teams = fetch_teams(supabase_url, read_headers)
+        print(f"Buscando escudos para {len(teams)} equipos...")
+        for team in teams:
+            page = wiki_search_page(f"{team['name']} club de futbol escudo", require_footballer=False)
+            time.sleep(REQUEST_DELAY)
+            if page and page.get("photo_url"):
+                team_updates.append({"id": team["id"], "logo_url": page["photo_url"]})
+                print(f"  OK  {team['name']}")
+            else:
+                print(f"  --  {team['name']} (sin resultado confiable)")
 
     players = fetch_players(supabase_url, read_headers)
     print(f"Buscando fotos/estatura para {len(players)} jugadores incompletos...")

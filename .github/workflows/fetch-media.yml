@@ -1,7 +1,12 @@
 name: Fetch team logos and player photos from Wikipedia
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      player_name:
+        description: "Opcional: nombre (o parte) de un jugador puntual, para no correr el lote completo"
+        required: false
+        default: ""
 
 jobs:
   fetch-media:
@@ -21,4 +26,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
+          PLAYER_FILTER: ${{ inputs.player_name }}
         run: python scripts/fetch_media.py
