@@ -83,6 +83,13 @@ def wiki_search_page(query: str, require_footballer: bool) -> dict | None:
     }
 
 
+# Unidades que puede traer P2048 en Wikidata (URI completo de la entidad).
+# Wikidata mezcla metros y centimetros segun quien haya cargado el dato --
+# asumir siempre una es como quedo "191 m" para Muslera.
+WIKIDATA_METRE = "http://www.wikidata.org/entity/Q11573"
+WIKIDATA_CENTIMETRE = "http://www.wikidata.org/entity/Q174728"
+
+
 def wiki_get_height_cm(wikibase_item: str | None) -> int | None:
     if not wikibase_item:
         return None
@@ -97,8 +104,18 @@ def wiki_get_height_cm(wikibase_item: str | None) -> int | None:
     if not claims:
         return None
     try:
-        amount = claims[0]["mainsnak"]["datavalue"]["value"]["amount"]
-        return round(float(amount.lstrip("+")) * 100)
+        value = claims[0]["mainsnak"]["datavalue"]["value"]
+        amount = float(value["amount"].lstrip("+"))
+        unit = value.get("unit", "")
+        if unit == WIKIDATA_METRE:
+            height_cm = round(amount * 100)
+        elif unit == WIKIDATA_CENTIMETRE:
+            height_cm = round(amount)
+        else:
+            return None  # unidad desconocida -- mejor no adivinar
+        if not (140 <= height_cm <= 220):
+            return None  # fuera de rango humano razonable, probablemente mal dato
+        return height_cm
     except (KeyError, TypeError, ValueError):
         return None
 
