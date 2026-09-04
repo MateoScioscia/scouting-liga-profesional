@@ -82,13 +82,21 @@ def parse_contract_date(text: str) -> str | None:
     return None
 
 
-def find_profile_url(page, name: str) -> str | None:
+def find_profile_url(page, name: str, debug: bool = False) -> str | None:
     search_url = f"{BASE}/schnellsuche/ergebnis/schnellsuche?query={quote(name)}"
     page.goto(search_url, wait_until="domcontentloaded", timeout=NAV_TIMEOUT)
     page.wait_for_timeout(CHALLENGE_WAIT_MS)
     soup = BeautifulSoup(page.content(), "lxml")
     link = soup.select_one("table.items td.hauptlink a[href*='/profil/spieler/']")
     if not link or not link.get("href"):
+        if debug:
+            title = soup.title.get_text(strip=True) if soup.title else "(sin <title>)"
+            body_len = len(soup.get_text(strip=True))
+            # Si el titulo/tamano de pagina no parecen una busqueda real de
+            # Transfermarkt, probablemente nos esta devolviendo el desafio
+            # anti-bot en vez de resultados -- distingue eso de "el jugador
+            # realmente no tiene ficha".
+            print(f"    [debug] sin link de resultado. title={title!r} body_chars={body_len}")
         return None
     href = link["href"]
     return href if href.startswith("http") else f"{BASE}{href}"
@@ -203,7 +211,7 @@ def main() -> None:
 
         for i, player in enumerate(players, 1):
             try:
-                profile_url = find_profile_url(page, player["full_name"])
+                profile_url = find_profile_url(page, player["full_name"], debug=bool(PLAYER_FILTER))
                 if not profile_url:
                     print(f"  --  {player['full_name']}: sin resultado de busqueda")
                     continue
