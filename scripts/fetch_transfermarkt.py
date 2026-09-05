@@ -1,9 +1,17 @@
 """
 Busca Contrato (fecha de fin) y Valor de mercado en Transfermarkt para
-jugadores que todavia no los tengan cargados, y los sube a Supabase
+jugadores que todavia no se hayan revisado, y los sube a Supabase
 (columna `players.contract_until` via `admin_update_media`, y una fila en
 `market_values` via `admin_import_market_values`, ya existente para la
 carga manual).
+
+Un jugador queda excluido de futuras corridas (`transfermarkt_checked_at`
+seteado) apenas se llega a su ficha real, tenga o no fecha de contrato
+publicada -- muchos perfiles simplemente no la muestran, y no tiene
+sentido reintentarlos para siempre. Un "sin resultado de busqueda" en
+cambio NO marca al jugador como revisado, porque puede ser el bloqueo
+anti-bot en vez de una ausencia real de ficha (ver mas abajo), y conviene
+darle otra chance en una corrida futura.
 
 A diferencia de FBref, Transfermarkt SI deja pasar a un navegador real:
 un pedido simple con `requests` devuelve un desafio de AWS WAF (confirmado
@@ -159,7 +167,7 @@ def fetch_players(supabase_url: str, headers: dict) -> list[dict]:
     if PLAYER_FILTER:
         filter_clause = f"full_name=ilike.*{quote(PLAYER_FILTER)}*"
     else:
-        filter_clause = "contract_until=is.null&order=full_name.asc"
+        filter_clause = "transfermarkt_checked_at=is.null&order=full_name.asc"
         if MAX_PLAYERS:
             filter_clause += f"&limit={MAX_PLAYERS}"
     resp = requests.get(
@@ -230,8 +238,18 @@ def main() -> None:
                 print(f"  ERROR con {player['full_name']}: {exc}", file=sys.stderr)
                 continue
 
-            if data.get("contract_until"):
-                player_updates.append({"id": player["id"], "contract_until": data["contract_until"]})
+            if data:
+                # Llegamos a una ficha real (paso el chequeo de "position"),
+                # aunque no siempre traiga contrato -- algunos perfiles no
+                # publican esa fecha. Marcamos como revisado para no
+                # reprocesarlo en cada tanda; un "sin resultado de busqueda"
+                # (mas abajo) en cambio NO se marca, porque puede ser el
+                # bloqueo anti-bot en vez de una ausencia real, y conviene
+                # reintentarlo en una tanda futura.
+                update: dict = {"id": player["id"], "transfermarkt_checked_at": datetime.now().isoformat()}
+                if data.get("contract_until"):
+                    update["contract_until"] = data["contract_until"]
+                player_updates.append(update)
             if data.get("value_amount"):
                 market_value_rows.append(
                     {
@@ -250,7 +268,7 @@ def main() -> None:
                 print(f"  ...{i}/{len(players)} procesados")
 
             if i % SAVE_EVERY == 0:
-                print(f"  -- guardando progreso ({len(player_updates)} contratos, {len(market_value_rows)} valores) --")
+                print(f"  -- guardando progreso ({len(player_updates)} revisados, {len(market_value_rows)} valores) --")
                 push_player_updates(supabase_url, write_headers, passcode, player_updates)
                 push_market_values(supabase_url, write_headers, passcode, market_value_rows)
                 player_updates = []
@@ -258,7 +276,7 @@ def main() -> None:
 
         browser.close()
 
-    print(f"Restantes sin guardar: {len(player_updates)} contratos, {len(market_value_rows)} valores")
+    print(f"Restantes sin guardar: {len(player_updates)} revisados, {len(market_value_rows)} valores")
     push_player_updates(supabase_url, write_headers, passcode, player_updates)
     push_market_values(supabase_url, write_headers, passcode, market_value_rows)
     print("Listo.")
