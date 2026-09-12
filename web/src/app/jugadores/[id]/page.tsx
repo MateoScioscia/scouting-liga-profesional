@@ -23,6 +23,18 @@ import TeamLogo from "@/components/TeamLogo";
 import SummaryCard from "@/components/SummaryCard";
 import { computeSummaryText } from "@/lib/summary";
 import Flag from "@/components/Flag";
+import ScoutingMatchChart from "@/components/ScoutingMatchChart";
+import ScoutingBarList from "@/components/ScoutingBarList";
+import {
+  computeSummary as computeMatchLogSummary,
+  cumulativeXgGoals,
+  perMatchShots,
+  perMatchPassPct,
+  averagePassPct,
+  perMatchProgression,
+  perMatchDefensiveActions,
+  creationTotals,
+} from "@/lib/matchLogMetrics";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +44,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   } catch {
     notFound();
   }
-  const { player, seasonStats, marketValues } = data!;
+  const { player, seasonStats, marketValues, matchStats } = data!;
   if (!player) notFound();
 
   const currentStats = seasonStats.find((s) => s.season === CURRENT_SEASON) ?? seasonStats[0] ?? null;
@@ -74,6 +86,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const teamMatches = player.team_id ? teamMatchTotals[player.team_id] : undefined;
   const heightLabel = player.height_cm ? `${(player.height_cm / 100).toFixed(2).replace(".", ",")}m` : "—";
   const contractLabel = formatContractRemaining(player.contract_until);
+
+  const matchLogSummary = matchStats.length > 0 ? computeMatchLogSummary(matchStats) : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 flex flex-col gap-6">
@@ -161,6 +175,88 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             {rating.categories.map((c) => (
               <RatingGauge key={c.category} label={c.category} value={c.score} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {matchLogSummary && (
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-medium">Partido a partido</h2>
+            <span className="text-xs text-muted">{matchLogSummary.matches} partidos · fuente: FBref</span>
+          </div>
+          <p className="text-xs text-muted mb-4">
+            Estadísticas por partido de la temporada, scrapeadas de FBref (categorías distintas a las del scouting
+            externo de Wyscout).
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <KpiCard label="G+A / 90" value={matchLogSummary.gaPer90.toFixed(2)} hint={`${matchLogSummary.goals}G, ${matchLogSummary.assists}A`} />
+            <KpiCard label="xG total" value={matchLogSummary.xgTotal.toFixed(2)} hint={`xAG ${matchLogSummary.xagTotal.toFixed(2)}`} />
+            <KpiCard
+              label="% Pases completados"
+              value={`${matchLogSummary.passesPct.toFixed(1)}%`}
+              hint={`${matchLogSummary.passesCompleted}/${matchLogSummary.passesAttempted}`}
+            />
+            <KpiCard
+              label="Tackles + intercepciones"
+              value={`${matchLogSummary.tackles + matchLogSummary.interceptions}`}
+              hint={`${matchLogSummary.tackles} tackles, ${matchLogSummary.interceptions} intercep.`}
+            />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium mb-3">xG acumulado vs. goles reales acumulados</h3>
+              <ScoutingMatchChart
+                data={cumulativeXgGoals(matchStats)}
+                lines={[
+                  { key: "xG", color: "var(--accent)" },
+                  { key: "Goles", color: "var(--gold)", dashed: true },
+                ]}
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-3">Tiros por partido</h3>
+              <ScoutingMatchChart
+                data={perMatchShots(matchStats)}
+                bars={[{ key: "Tiros", color: "var(--muted)" }, { key: "Tiros al arco", color: "var(--accent)" }]}
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-3">% Pases completados por partido</h3>
+              <ScoutingMatchChart
+                data={perMatchPassPct(matchStats)}
+                lines={[{ key: "% Pases completados", color: "var(--accent)" }]}
+                referenceValue={Math.round(averagePassPct(matchStats) * 10) / 10}
+                referenceLabel="Promedio"
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-3">Progresión: pases y conducciones progresivas</h3>
+              <ScoutingMatchChart
+                data={perMatchProgression(matchStats)}
+                bars={[
+                  { key: "Pases progresivos", color: "var(--accent)" },
+                  { key: "Conducciones progresivas", color: "var(--gold)" },
+                ]}
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-3">Acciones defensivas por partido</h3>
+              <ScoutingMatchChart
+                data={perMatchDefensiveActions(matchStats)}
+                bars={[
+                  { key: "Tackles", color: "var(--accent)", stackId: "def" },
+                  { key: "Intercepciones", color: "var(--gold)", stackId: "def" },
+                  { key: "Bloqueos", color: "var(--muted)", stackId: "def" },
+                ]}
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-3">Creación de juego (total temporada)</h3>
+              <ScoutingBarList items={creationTotals(matchStats)} mode="count" />
+            </div>
           </div>
         </div>
       )}

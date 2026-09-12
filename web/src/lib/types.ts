@@ -54,6 +54,48 @@ export type PlayerWithStats = Player & {
   season_stats: PlayerSeasonStats[];
 };
 
+// Partido a partido para jugadores del plantel LPF, scrapeado de FBref
+// (ver scripts/fetch_fbref_matchlogs.py). Columnas mas limitadas que el
+// scouting externo (que viene de un export de Wyscout) pero cubre a todo
+// el plantel en vez de un jugador puntual.
+export type PlayerMatchStat = {
+  id: string;
+  player_id: string;
+  match_date: string;
+  competition: string | null;
+  round: string | null;
+  venue: string | null;
+  opponent: string | null;
+  result_code: string | null;
+  started: boolean | null;
+  position_specific: string | null;
+  minutes_played: number;
+  goals: number;
+  assists: number;
+  penalty_goals: number;
+  penalty_attempts: number;
+  shots: number;
+  shots_on_target: number;
+  yellow_cards: number;
+  red_cards: number;
+  touches: number;
+  tackles: number;
+  interceptions: number;
+  blocks: number;
+  xg: number;
+  npxg: number;
+  xag: number;
+  sca: number;
+  gca: number;
+  passes_completed: number;
+  passes_attempted: number;
+  progressive_passes: number;
+  carries: number;
+  progressive_carries: number;
+  take_ons_attempted: number;
+  take_ons_successful: number;
+};
+
 // Objetivos de scouting externo: jugadores de otras ligas evaluados con
 // reportes partido a partido (no forman parte del roster de la Liga
 // Profesional, que solo tiene stats agregadas por temporada).

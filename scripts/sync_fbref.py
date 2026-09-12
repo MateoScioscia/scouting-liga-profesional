@@ -20,6 +20,7 @@ chromedriver), que al menos resuelve el desafio JS/TLS de Cloudflare.
 from __future__ import annotations
 
 import os
+import re
 import sys
 
 import requests
@@ -120,6 +121,11 @@ def to_num(value, default=None):
 
 def merge_key(row: dict) -> tuple[str, str]:
     return (row.get("player_href", "") or row.get("player", ""), row.get("team", ""))
+
+
+def fbref_id_from_href(href: str) -> str | None:
+    match = re.search(r"/players/([a-z0-9]+)/", href or "")
+    return match.group(1) if match else None
 
 
 def scrape_all() -> list[dict]:
@@ -248,6 +254,7 @@ def scrape_all() -> list[dict]:
                 "yellow_cards": to_num(base.get("cards_yellow"), 0),
                 "red_cards": to_num(base.get("cards_red"), 0),
                 "position_group": infer_position_group(position),
+                "fbref_id": fbref_id_from_href(base.get("player_href", "")),
                 "stats": stats,
             }
         )

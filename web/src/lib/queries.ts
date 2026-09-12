@@ -1,5 +1,14 @@
 import { getSupabase } from "./supabase";
-import type { Player, PlayerSeasonStats, MarketValue, PositionGroup, Team, ScoutingPlayer, ScoutingMatchStat } from "./types";
+import type {
+  Player,
+  PlayerSeasonStats,
+  MarketValue,
+  PositionGroup,
+  Team,
+  ScoutingPlayer,
+  ScoutingMatchStat,
+  PlayerMatchStat,
+} from "./types";
 
 export const CURRENT_SEASON = "2026";
 
@@ -94,10 +103,17 @@ export async function getPlayerById(id: string) {
     .eq("player_id", id)
     .order("value_date", { ascending: true });
 
+  const { data: matchStats } = await supabase
+    .from("player_match_stats")
+    .select("*")
+    .eq("player_id", id)
+    .order("match_date", { ascending: true });
+
   return {
     player: player as Player,
     seasonStats: (seasonStats ?? []) as PlayerSeasonStats[],
     marketValues: (marketValues ?? []) as MarketValue[],
+    matchStats: (matchStats ?? []) as PlayerMatchStat[],
   };
 }
 
