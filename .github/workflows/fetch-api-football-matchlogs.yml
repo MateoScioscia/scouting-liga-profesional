@@ -15,6 +15,10 @@ on:
         description: "Imprimir nombres de equipos/jugadores que no matchearon (para ajustar TEAM_ALIASES)"
         type: boolean
         default: true
+      list_leagues:
+        description: "En vez de correr el import, solo listar ligas de Argentina con sus IDs (para confirmar LEAGUE_ID)"
+        type: boolean
+        default: false
 
 jobs:
   fetch-api-football-matchlogs:
@@ -38,4 +42,5 @@ jobs:
           SEASON: ${{ inputs.season || '2026' }}
           MAX_FIXTURES: ${{ inputs.max_fixtures || '2' }}
           DEBUG_MATCHING: ${{ inputs.debug_matching && '1' || '' }}
+          LIST_LEAGUES: ${{ inputs.list_leagues && '1' || '' }}
         run: python scripts/fetch_api_football_matchlogs.py

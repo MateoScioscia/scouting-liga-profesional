@@ -250,14 +250,23 @@ def cache_ids(supabase_url: str, headers: dict, passcode: str, team_id: str | No
 
 
 def main() -> None:
+    api_key = os.environ["API_FOOTBALL_KEY"]
+    af = ApiFootball(api_key)
+
+    if os.environ.get("LIST_LEAGUES"):
+        leagues = af.get("/leagues", {"country": "Argentina"})
+        for entry in leagues:
+            league = entry["league"]
+            seasons = [s["year"] for s in entry.get("seasons", [])]
+            print(f"{league['id']}: {league['name']} ({league['type']}) -- temporadas: {seasons}")
+        return
+
     supabase_url = os.environ["SUPABASE_URL"].rstrip("/")
     anon_key = os.environ["SUPABASE_ANON_KEY"]
     passcode = os.environ["ADMIN_PASSCODE"]
-    api_key = os.environ["API_FOOTBALL_KEY"]
 
     read_headers = {"apikey": anon_key, "Authorization": f"Bearer {anon_key}"}
     write_headers = {**read_headers, "Content-Type": "application/json"}
-    af = ApiFootball(api_key)
 
     our_teams = fetch_our_teams(supabase_url, read_headers)
     team_af_ids = resolve_team_af_ids(af, our_teams)
