@@ -9,6 +9,7 @@ const SECTIONS: { heading: string; links: { href: string; label: string; hint: s
     links: [
       { href: "/jugadores", label: "Jugadores", hint: "Base de datos y scouting", icon: "⚽" },
       { href: "/comparar", label: "Comparar", hint: "Comparativa lado a lado", icon: "⇄" },
+      { href: "/scouting", label: "Scouting externo", hint: "Objetivos de otras ligas", icon: "🔍" },
     ],
   },
   {

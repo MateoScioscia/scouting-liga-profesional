@@ -1,5 +1,5 @@
 import { getSupabase } from "./supabase";
-import type { Player, PlayerSeasonStats, MarketValue, PositionGroup, Team } from "./types";
+import type { Player, PlayerSeasonStats, MarketValue, PositionGroup, Team, ScoutingPlayer, ScoutingMatchStat } from "./types";
 
 export const CURRENT_SEASON = "2026";
 
@@ -144,4 +144,26 @@ export async function getPositionSeasonStats(
     .limit(1000);
   if (error) throw error;
   return (data ?? []) as unknown as PositionPoolPlayer[];
+}
+
+export async function getScoutingPlayers(): Promise<ScoutingPlayer[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("scouting_players").select("*").order("full_name");
+  if (error) throw error;
+  return (data ?? []) as ScoutingPlayer[];
+}
+
+export async function getScoutingPlayerById(id: string) {
+  const supabase = getSupabase();
+  const { data: player, error } = await supabase.from("scouting_players").select("*").eq("id", id).single();
+  if (error) throw error;
+
+  const { data: matches, error: matchesError } = await supabase
+    .from("scouting_match_stats")
+    .select("*")
+    .eq("scouting_player_id", id)
+    .order("match_date", { ascending: true });
+  if (matchesError) throw matchesError;
+
+  return { player: player as ScoutingPlayer, matches: (matches ?? []) as ScoutingMatchStat[] };
 }

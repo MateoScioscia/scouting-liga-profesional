@@ -3,10 +3,12 @@
 import { useState } from "react";
 import PlayersUploader from "@/components/PlayersUploader";
 import MarketValuesUploader from "@/components/MarketValuesUploader";
+import ScoutingMatchStatsUploader from "@/components/ScoutingMatchStatsUploader";
 
 const TABS = [
   { key: "players", label: "Estadísticas de jugadores" },
   { key: "market", label: "Valor de mercado" },
+  { key: "scouting", label: "Scouting externo (partido a partido)" },
 ] as const;
 
 export default function CargarDatosPage() {
@@ -37,7 +39,9 @@ export default function CargarDatosPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-surface p-5">
-        {tab === "players" ? <PlayersUploader /> : <MarketValuesUploader />}
+        {tab === "players" && <PlayersUploader />}
+        {tab === "market" && <MarketValuesUploader />}
+        {tab === "scouting" && <ScoutingMatchStatsUploader />}
       </div>
     </div>
   );
