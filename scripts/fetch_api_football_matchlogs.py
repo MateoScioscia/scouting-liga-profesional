@@ -26,7 +26,7 @@ adivinar.
 
     pip install -r scripts/requirements.txt
     SUPABASE_URL=... SUPABASE_ANON_KEY=... ADMIN_PASSCODE=... \
-    API_FOOTBALL_KEY=... LEAGUE_ID=44 SEASON=2026 MAX_FIXTURES=2 \
+    API_FOOTBALL_KEY=... LEAGUE_ID=128 SEASON=2026 MAX_FIXTURES=2 \
         python scripts/fetch_api_football_matchlogs.py
 """
 
@@ -41,7 +41,7 @@ import unicodedata
 import requests
 
 API_BASE = "https://v3.football.api-sports.io"
-LEAGUE_ID = int(os.environ.get("LEAGUE_ID", "44"))  # Liga Profesional Argentina
+LEAGUE_ID = int(os.environ.get("LEAGUE_ID", "128"))  # Liga Profesional Argentina
 SEASON = os.environ.get("SEASON", "2026")
 MAX_FIXTURES = int(os.environ.get("MAX_FIXTURES", "0") or "0") or None
 DEBUG_MATCHING = bool(os.environ.get("DEBUG_MATCHING", ""))
