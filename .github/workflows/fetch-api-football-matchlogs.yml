@@ -1,0 +1,41 @@
+name: Fetch match-by-match stats from API-Football
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Temporada (año, ej. 2026)"
+        required: false
+        default: "2026"
+      max_fixtures:
+        description: "Tope de partidos a procesar (0 = todos). Usa un número chico mientras estés en el plan free (100 pedidos/día)."
+        required: false
+        default: "2"
+      debug_matching:
+        description: "Imprimir nombres de equipos/jugadores que no matchearon (para ajustar TEAM_ALIASES)"
+        type: boolean
+        default: true
+
+jobs:
+  fetch-api-football-matchlogs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Bajar estadisticas partido a partido de API-Football
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          SEASON: ${{ inputs.season || '2026' }}
+          MAX_FIXTURES: ${{ inputs.max_fixtures || '2' }}
+          DEBUG_MATCHING: ${{ inputs.debug_matching && '1' || '' }}
+        run: python scripts/fetch_api_football_matchlogs.py
