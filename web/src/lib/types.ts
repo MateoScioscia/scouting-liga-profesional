@@ -29,6 +29,8 @@ export type PlayerSeasonStats = {
   id: string;
   player_id: string;
   season: string;
+  // liga donde se jugó esa temporada (ver src/lib/leagues.ts)
+  league_id: string;
   team_id: string | null;
   matches_played: number | null;
   starts: number | null;
@@ -168,4 +170,21 @@ export type ScoutingMatchStat = {
   recoveries_opp_half: number;
   yellow_cards: number;
   red_cards: number;
+};
+
+// Historial de lesiones. Son datos de salud (sensibles según la Ley 25.326):
+// la tabla no es legible con la clave pública; se lee con la RPC
+// get_player_injuries, que pide el código de acceso.
+export type PlayerInjury = {
+  id: string;
+  player_id: string;
+  injury_date: string;
+  expected_return_date: string | null;
+  return_date: string | null;
+  injury_type: string;
+  body_part: string;
+  body_side: string | null;
+  occurred_in: string;
+  is_recurrence: boolean;
+  notes: string | null;
 };

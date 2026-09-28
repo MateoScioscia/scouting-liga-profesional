@@ -5,6 +5,7 @@ import { parseFile, parseEsNumber, type ParsedTable } from "@/lib/parseFile";
 import { PLAYER_FIELDS, guessMapping } from "@/lib/fieldDefs";
 import { inferPositionGroup } from "@/lib/football";
 import { getSupabase } from "@/lib/supabase";
+import { LEAGUES, DEFAULT_LEAGUE } from "@/lib/leagues";
 
 const CHUNK_SIZE = 150;
 
@@ -32,6 +33,7 @@ export default function PlayersUploader() {
   const [table, setTable] = useState<ParsedTable | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [season, setSeason] = useState("2026");
+  const [league, setLeague] = useState(DEFAULT_LEAGUE);
   const [passcode, setPasscode] = useState("");
   const [status, setStatus] = useState<"idle" | "ready" | "submitting" | "done" | "error">("idle");
   const [message, setMessage] = useState<string>("");
@@ -104,6 +106,7 @@ export default function PlayersUploader() {
         const { data, error } = await supabase.rpc("admin_import_players", {
           passcode,
           p_season: season,
+          p_league: league,
           rows: chunk,
         });
         if (error) throw error;
@@ -111,7 +114,7 @@ export default function PlayersUploader() {
         setProgress({ done: Math.min(i + CHUNK_SIZE, rows.length), total: rows.length });
       }
       setStatus("done");
-      setMessage(`Listo: se importaron/actualizaron ${inserted} jugadores para la temporada ${season}.`);
+      setMessage(`Listo: se importaron/actualizaron ${inserted} jugadores para la temporada ${season} (${LEAGUES.find((l) => l.id === league)?.short ?? league}).`);
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Error desconocido al importar.");
@@ -131,20 +134,38 @@ export default function PlayersUploader() {
           className="block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#06170e] hover:file:bg-accent-2"
         />
         <p className="text-xs text-muted mt-1">
-          Funciona con el CSV exportado por el script de scraping (FBref, separado por &quot;;&quot; y coma decimal) o con
+          Funciona con el CSV exportado por el script de descarga de FBref ( separado por &quot;;&quot; y coma decimal) o con
           cualquier CSV/Excel propio — mapeá las columnas abajo.
         </p>
       </div>
 
       {table && (
         <>
-          <div>
-            <label className="block text-sm font-medium mb-1">Temporada</label>
-            <input
-              value={season}
-              onChange={(e) => setSeason(e.target.value)}
-              className="w-40 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-            />
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <label htmlFor="carga-temporada" className="block text-sm font-medium mb-1">Temporada</label>
+              <input
+                id="carga-temporada"
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+                className="w-40 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="carga-liga" className="block text-sm font-medium mb-1">Liga</label>
+              <select
+                id="carga-liga"
+                value={league}
+                onChange={(e) => setLeague(e.target.value)}
+                className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+              >
+                {LEAGUES.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.tier}.ª · {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>

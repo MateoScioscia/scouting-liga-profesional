@@ -31,9 +31,30 @@ function buildCategoryTabs(): { category: string; metrics: MetricDef[] }[] {
 
 const CATEGORY_TABS = buildCategoryTabs();
 
+// Paradas por partido (PPP): atajadas / partidos jugados.
+function savesPerMatch(p: PlayerListItem): number | null {
+  const s = p.season_stats[0];
+  const saves = getStat(s, "atajadas");
+  const matches = s?.matches_played ?? 0;
+  return saves === null || matches === 0 ? null : saves / matches;
+}
+
+// Columnas de resumen según la posición filtrada: los arqueros se miran por
+// arco en 0, goles en contra y paradas por partido en lugar de goles y asistencias.
+const FIELD_COLUMNS = [
+  { key: "goals", label: "Goles", title: "Goles", render: (p: PlayerListItem) => String(p.season_stats[0]?.goals ?? 0) },
+  { key: "assists", label: "Asist.", title: "Asistencias", render: (p: PlayerListItem) => String(p.season_stats[0]?.assists ?? 0) },
+];
+const GK_COLUMNS = [
+  { key: "vallas_invictas", label: "Arc en 0", title: "Arco en 0", render: (p: PlayerListItem) => formatMetric(getStat(p.season_stats[0], "vallas_invictas"), "int") },
+  { key: "goles_recibidos", label: "GC", title: "Goles en contra", render: (p: PlayerListItem) => formatMetric(getStat(p.season_stats[0], "goles_recibidos"), "int") },
+  { key: "ppp", label: "PPP", title: "Paradas por partido", render: (p: PlayerListItem) => formatNumber(savesPerMatch(p) ?? undefined, 1) },
+];
+
 function sortValue(p: PlayerListItem, ratings: Record<string, PlayerRating | null>, key: string): number | string | null {
   if (key === "name") return p.full_name;
   if (key === "rating") return ratings[p.id]?.overall ?? null;
+  if (key === "ppp") return savesPerMatch(p);
   return getStat(p.season_stats[0], key);
 }
 
@@ -50,12 +71,14 @@ function compareValues(a: number | string | null, b: number | string | null, dir
 
 function Th({
   label,
+  title,
   sortKeyFor,
   sortKey,
   sortDir,
   onSort,
 }: {
   label: string;
+  title?: string;
   sortKeyFor: string;
   sortKey: string;
   sortDir: "asc" | "desc";
@@ -65,6 +88,7 @@ function Th({
   return (
     <th
       onClick={() => onSort(sortKeyFor)}
+      title={title}
       className="px-3 py-3 font-medium cursor-pointer select-none hover:text-foreground whitespace-nowrap"
     >
       {label}
@@ -77,11 +101,17 @@ export default function PlayerTable({
   players,
   ratings,
   teamMatchTotals,
+  goalkeepers = false,
+  season,
 }: {
   players: PlayerListItem[];
   ratings: Record<string, PlayerRating | null>;
   teamMatchTotals: Record<string, number>;
+  goalkeepers?: boolean;
+  season?: string;
 }) {
+  const summaryColumns = goalkeepers ? GK_COLUMNS : FIELD_COLUMNS;
+  const seasonQuery = season ? `?temporada=${season}` : "";
   const [tab, setTab] = useState<string>("General");
   const [sortKey, setSortKey] = useState("rating");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -127,6 +157,9 @@ export default function PlayerTable({
             {t}
           </button>
         ))}
+        {goalkeepers && (
+          <span className="self-center ml-auto text-muted">Arc en 0 = arco en 0 · GC = goles en contra · PPP = paradas por partido</span>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-surface overflow-hidden">
@@ -144,8 +177,9 @@ export default function PlayerTable({
                   sortDir={sortDir}
                   onSort={toggleSort}
                 />
-                <Th label="Goles" sortKeyFor="goals" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                <Th label="Asist." sortKeyFor="assists" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                {summaryColumns.map((c) => (
+                  <Th key={c.key} label={c.label} title={c.title} sortKeyFor={c.key} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                ))}
                 {activeCategory?.metrics.map((m) => (
                   <Th key={m.key} label={m.short} sortKeyFor={m.key} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                 ))}
@@ -163,7 +197,7 @@ export default function PlayerTable({
                 return (
                   <tr key={p.id} className="border-b border-border/60 last:border-0 hover:bg-surface-2/60 transition-colors">
                     <td className="px-4 py-2.5 sticky left-0 bg-surface">
-                      <Link href={`/jugadores/${p.id}`} className="flex items-center gap-2.5 min-w-0">
+                      <Link href={`/jugadores/${p.id}${seasonQuery}`} className="flex items-center gap-2.5 min-w-0">
                         <Avatar src={p.photo_url} name={p.full_name} color={posColor} size={32} />
                         <div className="min-w-0">
                           <div className="font-medium truncate hover:text-accent-2 transition-colors">{p.full_name}</div>
@@ -184,8 +218,11 @@ export default function PlayerTable({
                     </td>
                     <td className="px-3 py-2.5 tabular-nums">{formatNumber(getStat(stats, "edad") ?? undefined, 0)}</td>
                     <td className="px-3 py-2.5 tabular-nums">{formatNumber(stats?.minutes_played ?? undefined, 0)}</td>
-                    <td className="px-3 py-2.5 tabular-nums">{stats?.goals ?? 0}</td>
-                    <td className="px-3 py-2.5 tabular-nums">{stats?.assists ?? 0}</td>
+                    {summaryColumns.map((c) => (
+                      <td key={c.key} className="px-3 py-2.5 tabular-nums">
+                        {c.render(p)}
+                      </td>
+                    ))}
                     {activeCategory?.metrics.map((m) => (
                       <td key={m.key} className="px-3 py-2.5 tabular-nums">
                         {formatMetric(getStat(stats, m.key), m.format)}

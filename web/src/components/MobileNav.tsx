@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/jugadores", label: "Jugadores" },
   { href: "/comparar", label: "Comparar" },
-  { href: "/scouting", label: "Scouting" },
+  { href: "/scouting", label: "Externos" },
   { href: "/cargar-datos", label: "Cargar datos" },
 ];
 
@@ -19,7 +19,7 @@ export default function MobileNav() {
         <Link href="/jugadores" className="flex items-center gap-2 shrink-0">
           <span className="text-xl">⚽</span>
           <span className="font-semibold tracking-tight text-sm">
-            Scouting <span className="text-accent-2">LPF</span>
+            Seguimiento de <span className="text-accent-2">Futbolistas</span>
           </span>
         </Link>
         <nav className="flex items-center gap-1 text-xs">

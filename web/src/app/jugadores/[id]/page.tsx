@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlayerById, getPositionSeasonStats, getTeamMatchTotals, CURRENT_SEASON } from "@/lib/queries";
+import { getPlayerById, getPositionSeasonStats, getTeamMatchTotals, getTeams, CURRENT_SEASON } from "@/lib/queries";
+import { DEFAULT_LEAGUE, leagueById } from "@/lib/leagues";
+import { computeSeasonPercentiles } from "@/lib/evolution";
+import EvolutionCard from "@/components/EvolutionCard";
+import InjuriesCard from "@/components/InjuriesCard";
 import { KPI_METRICS, PERCENTILE_GROUPS, POSITION_COLORS, POSITION_LABELS, formatMetric, getStat } from "@/lib/metrics";
 import { computeMetricPercentiles, computePoolPercentileSpread, computeRadarValues } from "@/lib/percentiles";
 import { computeShotQualityProxy } from "@/lib/xgProxy";
@@ -36,24 +40,54 @@ import {
   creationTotals,
 } from "@/lib/matchLogMetrics";
 
-export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
+const MIN_MINUTES = 450;
+
+export default async function PlayerPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ temporada?: string }>;
+}) {
   const { id } = await params;
+  const { temporada } = await searchParams;
   let data;
   try {
     data = await getPlayerById(id);
   } catch {
     notFound();
   }
-  const { player, seasonStats, marketValues, matchStats } = data!;
+  const { player, seasonStats, marketValues, matchStats: allMatchStats } = data!;
   if (!player) notFound();
 
-  const currentStats = seasonStats.find((s) => s.season === CURRENT_SEASON) ?? seasonStats[0] ?? null;
+  const currentStats =
+    seasonStats.find((s) => s.season === (temporada ?? CURRENT_SEASON)) ??
+    seasonStats.find((s) => s.season === CURRENT_SEASON) ??
+    seasonStats[0] ??
+    null;
+  const season = currentStats?.season ?? CURRENT_SEASON;
+  const leagueId = currentStats?.league_id ?? DEFAULT_LEAGUE;
   const positionGroup = player.position_group ?? "MID";
-  const [pool, teamMatchTotals] = await Promise.all([
-    player.position_group ? getPositionSeasonStats(player.position_group) : Promise.resolve([]),
-    getTeamMatchTotals(),
+  // pares de cada temporada del jugador (misma posición y liga), para los percentiles y la evolución
+  const [seasonPools, teamMatchTotals, teams] = await Promise.all([
+    Promise.all(
+      seasonStats.map(async (s) => {
+        const pool = player.position_group
+          ? await getPositionSeasonStats(player.position_group, s.season, s.league_id ?? DEFAULT_LEAGUE)
+          : [];
+        return [s.season, pool] as const;
+      })
+    ),
+    getTeamMatchTotals(season),
+    getTeams(),
   ]);
+  const poolsBySeason = Object.fromEntries(seasonPools);
+  const pool = poolsBySeason[season] ?? [];
   const poolStats = pool.flatMap((p) => p.season_stats);
+  const poolStatsBySeason = Object.fromEntries(seasonPools.map(([s, pl]) => [s, pl.flatMap((p) => p.season_stats)]));
+  const seasonPercentiles = computeSeasonPercentiles(seasonStats, poolStatsBySeason, positionGroup);
+  const teamNames = Object.fromEntries(teams.map((tm) => [tm.id, tm.name]));
+  const leagueLabel = leagueById(leagueId)?.short ?? leagueId;
   const sampleWarning = computeSampleWarning(
     currentStats?.matches_played,
     player.team_id ? teamMatchTotals[player.team_id] : undefined
@@ -87,6 +121,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const heightLabel = player.height_cm ? `${(player.height_cm / 100).toFixed(2).replace(".", ",")}m` : "—";
   const contractLabel = formatContractRemaining(player.contract_until);
 
+  // las temporadas de la liga argentina son por año calendario
+  const matchStats = allMatchStats.filter((m) => m.match_date.startsWith(season));
   const matchLogSummary = matchStats.length > 0 ? computeMatchLogSummary(matchStats) : null;
 
   return (
@@ -134,6 +170,29 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
               </span>
             )}
           </div>
+
+          {seasonStats.length > 0 && (
+            <nav aria-label="Temporada" className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-muted mr-1">Temporada:</span>
+              {[...seasonStats]
+                .sort((a, b) => b.season.localeCompare(a.season))
+                .map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/jugadores/${player.id}?temporada=${s.season}`}
+                    aria-current={s.season === season ? "page" : undefined}
+                    className={`rounded-full px-3 py-1 border transition-colors ${
+                      s.season === season
+                        ? "bg-accent/15 text-accent-2 border-accent/40"
+                        : "border-border text-muted hover:text-foreground hover:bg-surface-2"
+                    }`}
+                  >
+                    {s.season}
+                  </Link>
+                ))}
+              <span className="text-muted ml-1">· {leagueLabel}</span>
+            </nav>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-1">
             <KpiCard label="Edad" value={age ? `${age}` : "—"} />
@@ -186,32 +245,32 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             <span className="text-xs text-muted">{matchLogSummary.matches} partidos · fuente: FBref</span>
           </div>
           <p className="text-xs text-muted mb-4">
-            Estadísticas por partido de la temporada, scrapeadas de FBref (categorías distintas a las del scouting
-            externo de Wyscout).
+            Estadísticas por partido de la temporada, tomadas de FBref (categorías distintas a las del seguimiento
+            externo, que viene de Wyscout).
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             <KpiCard label="G+A / 90" value={matchLogSummary.gaPer90.toFixed(2)} hint={`${matchLogSummary.goals}G, ${matchLogSummary.assists}A`} />
-            <KpiCard label="xG total" value={matchLogSummary.xgTotal.toFixed(2)} hint={`xAG ${matchLogSummary.xagTotal.toFixed(2)}`} />
+            <KpiCard label="Goles esperados" value={matchLogSummary.xgTotal.toFixed(2)} hint={`Asist. esperadas ${matchLogSummary.xagTotal.toFixed(2)}`} />
             <KpiCard
               label="% Pases completados"
               value={`${matchLogSummary.passesPct.toFixed(1)}%`}
               hint={`${matchLogSummary.passesCompleted}/${matchLogSummary.passesAttempted}`}
             />
             <KpiCard
-              label="Tackles + intercepciones"
+              label="Entradas + intercepciones"
               value={`${matchLogSummary.tackles + matchLogSummary.interceptions}`}
-              hint={`${matchLogSummary.tackles} tackles, ${matchLogSummary.interceptions} intercep.`}
+              hint={`${matchLogSummary.tackles} entradas, ${matchLogSummary.interceptions} intercep.`}
             />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-medium mb-3">xG acumulado vs. goles reales acumulados</h3>
+              <h3 className="text-sm font-medium mb-3">Goles esperados acumulados vs. goles reales acumulados</h3>
               <ScoutingMatchChart
                 data={cumulativeXgGoals(matchStats)}
                 lines={[
-                  { key: "xG", color: "var(--accent)" },
+                  { key: "Goles esperados", color: "var(--accent)" },
                   { key: "Goles", color: "var(--gold)", dashed: true },
                 ]}
               />
@@ -247,7 +306,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
               <ScoutingMatchChart
                 data={perMatchDefensiveActions(matchStats)}
                 bars={[
-                  { key: "Tackles", color: "var(--accent)", stackId: "def" },
+                  { key: "Entradas", color: "var(--accent)", stackId: "def" },
                   { key: "Intercepciones", color: "var(--gold)", stackId: "def" },
                   { key: "Bloqueos", color: "var(--muted)", stackId: "def" },
                 ]}
@@ -265,7 +324,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         <div className="rounded-xl border border-border bg-surface p-5">
           <h2 className="font-medium mb-1">Perfil de percentiles</h2>
           <p className="text-xs text-muted mb-3">
-            Comparado contra otros {POSITION_LABELS[positionGroup].toLowerCase()}es de la liga (temporada {CURRENT_SEASON}).
+            Comparado contra otros {POSITION_LABELS[positionGroup].toLowerCase()}es de {leagueLabel} (temporada {season}).
           </p>
           <PeerRadar
             series={[{ name: player.full_name, color: "#4ade80", values: radarValues }]}
@@ -289,7 +348,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         <h2 className="font-medium mb-1">Reporte de percentiles</h2>
         <p className="text-xs text-muted mb-4">
           Cada barra muestra el percentil de {player.full_name.split(" ")[0]} frente al resto de{" "}
-          {POSITION_LABELS[positionGroup].toLowerCase()}es de la liga (temporada {CURRENT_SEASON}). Más verde y más
+          {POSITION_LABELS[positionGroup].toLowerCase()}es de {leagueLabel} (temporada {season}). Más verde y más
           larga = mejor ubicado en el grupo.
         </p>
         <PercentileBars groups={percentileGroups} />
@@ -302,7 +361,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       <SimilarPlayersCard players={similarPlayers} />
 
       <div className="rounded-xl border border-border bg-surface p-5 overflow-x-auto scrollbar-thin">
-        <h2 className="font-medium mb-3">Estadísticas completas — temporada {currentStats?.season ?? CURRENT_SEASON}</h2>
+        <h2 className="font-medium mb-3">Estadísticas completas — temporada {season}</h2>
         {currentStats ? (
           <table className="text-sm min-w-full">
             <tbody>
@@ -329,18 +388,17 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      {seasonStats.length > 1 && (
-        <div className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="font-medium mb-3">Temporadas cargadas</h2>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {seasonStats.map((s) => (
-              <span key={s.id} className="rounded-full border border-border px-3 py-1 text-muted">
-                {s.season}: {s.minutes_played ?? 0}&apos; · {s.goals ?? 0}G · {s.assists ?? 0}A
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <EvolutionCard
+        playerId={player.id}
+        seasons={seasonStats}
+        currentSeason={season}
+        positionGroup={positionGroup}
+        teamNames={teamNames}
+        percentiles={seasonPercentiles}
+        minMinutes={MIN_MINUTES}
+      />
+
+      <InjuriesCard playerId={player.id} />
 
       {marketValues.length > 0 && (
         <p className="text-xs text-muted">Última actualización de valor: {formatDate(latestValue.value_date)}</p>

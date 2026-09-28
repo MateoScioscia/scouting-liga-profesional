@@ -128,7 +128,21 @@ def fbref_id_from_href(href: str) -> str | None:
     return match.group(1) if match else None
 
 
-def scrape_all() -> list[dict]:
+# Temporada en curso: FBref la sirve en la URL sin año. Las anteriores viven en
+# /comps/21/<año>/<tabla>/<año>-<slug>; sin esto, correr con SEASON=2025
+# bajaria la temporada actual y la guardaria como 2025.
+CURRENT_SEASON = os.environ.get("CURRENT_SEASON", "2026")
+
+
+def season_url(segment: str | None, season: str) -> str:
+    if season == CURRENT_SEASON:
+        return f"{BASE}/{segment}/{COMP_SLUG}" if segment else f"{BASE}/{COMP_SLUG}"
+    if segment:
+        return f"{BASE}/{season}/{segment}/{season}-{COMP_SLUG}"
+    return f"{BASE}/{season}/{season}-{COMP_SLUG}"
+
+
+def scrape_all(season: str) -> list[dict]:
     tables: dict[str, list[dict]] = {}
 
     with sync_playwright() as p:
@@ -141,14 +155,14 @@ def scrape_all() -> list[dict]:
         )
         page = context.new_page()
 
-        warmup_url = f"{BASE}/{COMP_SLUG}"
+        warmup_url = season_url(None, season)
         print(f"Calentando sesion: {warmup_url}")
         load_page(page, warmup_url, "stats_standard", referer="https://fbref.com/")
         page.wait_for_timeout(3000)
 
         referer = warmup_url
         for name, (segment, table_id) in TABLES.items():
-            url = f"{BASE}/{segment}/{COMP_SLUG}"
+            url = season_url(segment, season)
             print(f"Descargando {name}: {url}")
             html_text = load_page(page, url, table_id, referer=referer)
             tables[name] = parse_table(html_text, table_id)
@@ -290,7 +304,8 @@ def push_to_supabase(players: list[dict], season: str) -> None:
     total_inserted = 0
     for i in range(0, len(players), CHUNK_SIZE):
         chunk = players[i : i + CHUNK_SIZE]
-        payload = {"passcode": passcode, "p_season": season, "rows": chunk}
+        # este script solo baja la Primera Division (comp 21 de FBref)
+        payload = {"passcode": passcode, "p_season": season, "p_league": "LPF", "rows": chunk}
         resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
         if resp.status_code >= 300:
             raise RuntimeError(
@@ -306,7 +321,7 @@ def push_to_supabase(players: list[dict], season: str) -> None:
 def main() -> None:
     season = os.environ.get("SEASON", "2026")
     print(f"Scrapeando FBref (comp {COMP_ID}) para temporada {season}...")
-    players = scrape_all()
+    players = scrape_all(season)
     print(f"Total de filas mergeadas: {len(players)}")
     if not players:
         raise RuntimeError("El scraping no devolvio ningun jugador, aborto sin escribir nada")

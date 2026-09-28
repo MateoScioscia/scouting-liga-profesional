@@ -59,7 +59,7 @@ export const SCOUTING_MATCH_FIELDS: FieldDef[] = [
   { key: "assists", label: "Asistencias", guesses: ["asistencias"], group: "Ofensivo" },
   { key: "shots", label: "Tiros", guesses: ["tiros"], group: "Ofensivo" },
   { key: "shots_on_target", label: "Tiros logrados", guesses: ["tiros logrados"], group: "Ofensivo" },
-  { key: "xg", label: "xG", guesses: ["xg"], group: "Ofensivo" },
+  { key: "xg", label: "Goles esperados", guesses: ["xg"], group: "Ofensivo" },
   { key: "shot_assists", label: "Asistencias a tiro", guesses: ["asistencias a tiro"], group: "Ofensivo" },
   { key: "crosses", label: "Centros", guesses: ["centros"], group: "Ofensivo" },
   { key: "crosses_accurate", label: "Centros precisos", guesses: ["centros precisos"], group: "Ofensivo" },
@@ -78,7 +78,7 @@ export const SCOUTING_MATCH_FIELDS: FieldDef[] = [
   { key: "long_passes_accurate", label: "Pases largos logrados", guesses: ["pases largos logrados"], group: "Pases" },
   { key: "deep_passes", label: "Pases en profundidad", guesses: ["pases en profundidad"], group: "Pases" },
   { key: "deep_passes_accurate", label: "Pases en profundidad logrados", guesses: ["pases en profundidad logrados"], group: "Pases" },
-  { key: "xa", label: "xA", guesses: ["xa"], group: "Pases" },
+  { key: "xa", label: "Asistencias esperadas", guesses: ["xa"], group: "Pases" },
   { key: "passes_final_third", label: "Pases en el último tercio", guesses: ["pases en el último tercio", "pases en el ultimo tercio"], group: "Pases" },
   { key: "passes_final_third_accurate", label: "Pases en el último tercio logrados", guesses: ["pases en el último tercio logrados", "pases en el ultimo tercio logrados"], group: "Pases" },
   { key: "passes_penalty_area", label: "Pases hacia el área de penalti", guesses: ["pases hacia el área de penalti", "pases hacia el area de penalti"], group: "Pases" },
@@ -116,3 +116,18 @@ export function guessMapping(headers: string[], fields: FieldDef[]): Record<stri
   }
   return mapping;
 }
+
+// Historial de lesiones (una fila por lesión). Los valores de tipo, lado y
+// "ocurrió en" tienen que coincidir con los de la tabla player_injuries.
+export const INJURY_FIELDS: FieldDef[] = [
+  { key: "full_name", label: "Nombre del jugador", required: true, guesses: ["jugador", "nombre", "full_name", "player"] },
+  { key: "nationality", label: "Nacionalidad (opcional, ayuda a desambiguar)", guesses: ["nacionalidad", "nationality"] },
+  { key: "injury_date", label: "Fecha de la lesión (AAAA-MM-DD)", required: true, guesses: ["fecha", "fecha_lesion", "inicio", "injury_date"] },
+  { key: "expected_return_date", label: "Alta estimada (AAAA-MM-DD)", guesses: ["alta_estimada", "regreso_estimado", "expected_return_date"] },
+  { key: "return_date", label: "Alta real (AAAA-MM-DD, vacío si sigue de baja)", guesses: ["alta", "fecha_alta", "regreso", "return_date"] },
+  { key: "injury_type", label: "Tipo (Muscular, Ligamentaria, Tendinosa, Ósea, Articular, Conmoción, Otra)", required: true, guesses: ["tipo", "tipo_lesion", "injury_type"] },
+  { key: "body_part", label: "Zona del cuerpo", required: true, guesses: ["zona", "parte", "body_part"] },
+  { key: "body_side", label: "Lado (Izquierdo, Derecho, Ambos)", guesses: ["lado", "body_side"] },
+  { key: "occurred_in", label: "Ocurrió en (Partido, Entrenamiento, Otro)", guesses: ["ocurrio_en", "ocurrió en", "contexto", "occurred_in"] },
+  { key: "notes", label: "Notas", guesses: ["notas", "observaciones", "notes"] },
+];

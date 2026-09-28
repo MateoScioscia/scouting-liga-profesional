@@ -144,7 +144,7 @@ export function cumulativeXgGoals(rows: ScoutingMatchStat[]) {
   return rows.map((r) => {
     xg += r.xg;
     goals += r.goals;
-    return { label: opponentLabel(r), xG: Math.round(xg * 100) / 100, Goles: goals };
+    return { label: opponentLabel(r), "Goles esperados": Math.round(xg * 100) / 100, Goles: goals };
   });
 }
 

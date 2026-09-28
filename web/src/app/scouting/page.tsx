@@ -10,7 +10,7 @@ export default async function ScoutingPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Scouting externo</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Seguimiento externo</h1>
         <p className="text-muted mt-1">
           Jugadores de otras ligas evaluados con reportes partido a partido — no forman parte del roster de la Liga
           Profesional. Se cargan desde{" "}
@@ -23,7 +23,7 @@ export default async function ScoutingPage() {
 
       {players.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface p-8 text-center text-muted">
-          Todavía no hay jugadores de scouting cargados.
+          Todavía no hay jugadores externos cargados.
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

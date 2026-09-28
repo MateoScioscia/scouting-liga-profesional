@@ -4,11 +4,13 @@ import { useState } from "react";
 import PlayersUploader from "@/components/PlayersUploader";
 import MarketValuesUploader from "@/components/MarketValuesUploader";
 import ScoutingMatchStatsUploader from "@/components/ScoutingMatchStatsUploader";
+import InjuriesUploader from "@/components/InjuriesUploader";
 
 const TABS = [
   { key: "players", label: "Estadísticas de jugadores" },
   { key: "market", label: "Valor de mercado" },
-  { key: "scouting", label: "Scouting externo (partido a partido)" },
+  { key: "injuries", label: "Lesiones" },
+  { key: "scouting", label: "Seguimiento externo (partido a partido)" },
 ] as const;
 
 export default function CargarDatosPage() {
@@ -19,12 +21,12 @@ export default function CargarDatosPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Cargar datos</h1>
         <p className="text-muted mt-1">
-          Subí un CSV o Excel con estadísticas o valor de mercado. Los datos quedan disponibles al instante en la base
+          Subí un CSV o Excel con estadísticas, valor de mercado o lesiones. Los datos quedan disponibles al instante en la base
           de jugadores. Esta sección está protegida por un código de acceso.
         </p>
       </div>
 
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -41,6 +43,7 @@ export default function CargarDatosPage() {
       <div className="rounded-xl border border-border bg-surface p-5">
         {tab === "players" && <PlayersUploader />}
         {tab === "market" && <MarketValuesUploader />}
+        {tab === "injuries" && <InjuriesUploader />}
         {tab === "scouting" && <ScoutingMatchStatsUploader />}
       </div>
     </div>
