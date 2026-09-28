@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { PositionGroup } from "@/lib/types";
 import { POSITION_LABELS } from "@/lib/metrics";
+import { COUNTRIES, leaguesOfCountry } from "@/lib/leagues";
 
 type Team = { id: string; name: string };
 
@@ -12,9 +13,15 @@ const POSITIONS: PositionGroup[] = ["GK", "DEF", "MID", "FWD"];
 export default function FilterBar({
   teams,
   nationalities,
+  seasons,
+  season,
+  leaguesWithData,
 }: {
   teams: Team[];
   nationalities: string[];
+  seasons: string[];
+  season: string;
+  leaguesWithData: string[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -22,10 +29,11 @@ export default function FilterBar({
   const [isPending, startTransition] = useTransition();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
 
-  function updateParam(key: string, value: string) {
+  function updateParam(key: string, value: string, reset: string[] = []) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    for (const k of reset) params.delete(k);
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
     });
@@ -37,6 +45,10 @@ export default function FilterBar({
   }
 
   const hasFilters = searchParams.toString().length > 0;
+  const country = searchParams.get("pais") ?? COUNTRIES[0];
+  const leagues = leaguesOfCountry(country);
+  const tiers = Array.from(new Set(leagues.map((l) => l.tier)));
+  const selectClass = "rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent";
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
@@ -57,6 +69,54 @@ export default function FilterBar({
 
       <div className="flex flex-wrap gap-3">
         <select
+          aria-label="Temporada"
+          value={season}
+          onChange={(e) => updateParam("temporada", e.target.value)}
+          className={selectClass}
+        >
+          {seasons.map((s) => (
+            <option key={s} value={s}>
+              Temporada {s}
+            </option>
+          ))}
+        </select>
+
+        <select
+          aria-label="País"
+          value={country}
+          onChange={(e) => updateParam("pais", e.target.value, ["liga"])}
+          className={selectClass}
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
+        <select
+          aria-label="Liga"
+          value={searchParams.get("liga") ?? ""}
+          onChange={(e) => updateParam("liga", e.target.value, ["team"])}
+          className={`${selectClass} max-w-[240px]`}
+        >
+          <option value="">Todas las ligas</option>
+          {tiers.map((tier) => (
+            <optgroup key={tier} label={`${tier}.ª categoría`}>
+              {leagues
+                .filter((l) => l.tier === tier)
+                .map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.short}
+                    {leaguesWithData.includes(l.id) ? "" : " · sin datos"}
+                  </option>
+                ))}
+            </optgroup>
+          ))}
+        </select>
+
+        <select
+          aria-label="Posición"
           value={searchParams.get("position") ?? ""}
           onChange={(e) => updateParam("position", e.target.value)}
           className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"

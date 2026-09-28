@@ -72,9 +72,9 @@ export const KPI_METRICS: Record<PositionGroup, MetricDef[]> = {
     { key: "goals", label: "Goles", short: "Gol", format: "int" },
   ],
   GK: [
-    { key: "pct_atajadas", label: "% Atajadas", short: "%Ataj", format: "pct" },
-    { key: "goles_recibidos_p90", label: "Goles recibidos cada 90'", short: "GR/90", format: "dec" },
-    { key: "pct_vallas_invictas", label: "% Vallas invictas", short: "%VI", format: "pct" },
+    { key: "pct_atajadas", label: "% Paradas", short: "%Par", format: "pct" },
+    { key: "goles_recibidos_p90", label: "Goles en contra cada 90'", short: "GC/90", format: "dec" },
+    { key: "pct_vallas_invictas", label: "% Arco en 0", short: "%A0", format: "pct" },
     { key: "penales_atajados", label: "Penales atajados", short: "PenAt", format: "int" },
   ],
 };
@@ -106,9 +106,9 @@ export const RADAR_METRICS: Record<PositionGroup, MetricDef[]> = {
     { key: "asistencias_p90", label: "Asistencias/90", short: "Ast" },
   ],
   GK: [
-    { key: "pct_atajadas", label: "% Atajadas", short: "%Ataj", format: "pct" },
-    { key: "pct_vallas_invictas", label: "% Vallas invictas", short: "%VI", format: "pct" },
-    { key: "goles_recibidos_p90", label: "Goles recibidos/90 (inv.)", short: "GR" },
+    { key: "pct_atajadas", label: "% Paradas", short: "%Par", format: "pct" },
+    { key: "pct_vallas_invictas", label: "% Arco en 0", short: "%A0", format: "pct" },
+    { key: "goles_recibidos_p90", label: "Goles en contra/90 (inv.)", short: "GC" },
     { key: "penales_atajados", label: "Penales atajados", short: "PenAt" },
   ],
 };
@@ -198,9 +198,9 @@ export const PERCENTILE_GROUPS: Record<PositionGroup, MetricGroup[]> = {
     {
       category: "Paradas",
       metrics: [
-        { key: "pct_atajadas", label: "% de atajadas", short: "%Ataj", format: "pct" },
-        { key: "goles_recibidos_p90", label: "Goles recibidos/90 (invertido)", short: "GR/90" },
-        { key: "pct_vallas_invictas", label: "% de vallas invictas", short: "%VI", format: "pct" },
+        { key: "pct_atajadas", label: "% de paradas", short: "%Par", format: "pct" },
+        { key: "goles_recibidos_p90", label: "Goles en contra/90 (invertido)", short: "GC/90" },
+        { key: "pct_vallas_invictas", label: "% de arcos en 0", short: "%A0", format: "pct" },
       ],
     },
     {

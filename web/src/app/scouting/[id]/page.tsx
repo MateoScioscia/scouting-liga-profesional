@@ -75,7 +75,7 @@ export default async function ScoutingPlayerPage({ params }: { params: Promise<{
       <div className="flex flex-col sm:flex-row items-start gap-5">
         <Avatar src={player.photo_url} name={player.full_name} color="var(--accent)" size={96} />
         <div className="flex-1 min-w-0 flex flex-col gap-1">
-          <div className="text-xs text-muted uppercase tracking-wide">Scouting externo</div>
+          <div className="text-xs text-muted uppercase tracking-wide">Seguimiento externo</div>
           <h1 className="text-2xl font-semibold tracking-tight">{player.full_name}</h1>
           <p className="text-sm text-muted">
             {positions || player.position} — {player.nationality}. {player.league}
@@ -91,7 +91,7 @@ export default async function ScoutingPlayerPage({ params }: { params: Promise<{
         <h2 className="text-xl font-medium mb-4">Resumen</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <KpiCard label="G + A por 90'" value={formatNumber(summary.gaPer90, 2)} hint={`${summary.goals}G + ${summary.assists}A / ${summary.minutes} min`} />
-          <KpiCard label="xG Total" value={formatNumber(summary.xgTotal, 2)} hint={`${summary.goals} gol${summary.goals === 1 ? "" : "es"}`} />
+          <KpiCard label="Goles esperados" value={formatNumber(summary.xgTotal, 2)} hint={`${summary.goals} gol${summary.goals === 1 ? "" : "es"}`} />
           <KpiCard label="% Acciones" value={pct(summary.actionsPct)} hint={`${summary.actionsSuccessful} / ${summary.actionsTotal} tot.`} />
           <KpiCard label="% Pases" value={pct(summary.passesPct)} hint={`${summary.passesAccurate} / ${summary.passes} tot.`} />
           <KpiCard label="Bal. Posesión" value={formatNumber(summary.possessionBalance)} hint={`${summary.recoveries} Rec / ${summary.losses} Perd.`} />
@@ -122,7 +122,7 @@ export default async function ScoutingPlayerPage({ params }: { params: Promise<{
         <h2 className="text-xl font-medium mb-4">Acciones ofensivas</h2>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
           <KpiCard label="G + A por 90'" value={formatNumber(offensiveKpis.gaPer90, 2)} />
-          <KpiCard label="xG Total" value={formatNumber(offensiveKpis.xgTotal, 2)} />
+          <KpiCard label="Goles esperados" value={formatNumber(offensiveKpis.xgTotal, 2)} />
           <KpiCard label="Tiros por partido" value={formatNumber(offensiveKpis.shotsPerMatch, 1)} />
           <KpiCard label="Toques área penalti / partido" value={formatNumber(offensiveKpis.penaltyTouchesPerMatch, 1)} />
           <KpiCard label="% Regates eficaces" value={pct(offensiveKpis.dribblesPct)} />
@@ -149,11 +149,11 @@ export default async function ScoutingPlayerPage({ params }: { params: Promise<{
             />
           </div>
           <div>
-            <h3 className="text-sm font-medium mb-3">xG acumulado vs. goles reales acumulados</h3>
+            <h3 className="text-sm font-medium mb-3">Goles esperados acumulados vs. goles reales acumulados</h3>
             <ScoutingMatchChart
               data={xgVsGoals}
               lines={[
-                { key: "xG", color: "var(--accent-2)" },
+                { key: "Goles esperados", color: "var(--accent-2)" },
                 { key: "Goles", color: "var(--gold)" },
               ]}
             />

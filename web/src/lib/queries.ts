@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase";
+import { DEFAULT_LEAGUE } from "./leagues";
 import type {
   Player,
   PlayerSeasonStats,
@@ -12,6 +13,24 @@ import type {
 
 export const CURRENT_SEASON = "2026";
 
+// Temporadas con estadísticas cargadas, de la más nueva a la más vieja.
+export async function getSeasons(): Promise<string[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("player_season_stats").select("season").limit(10000);
+  if (error) throw error;
+  const set = new Set((data ?? []).map((r) => String(r.season)));
+  set.add(CURRENT_SEASON);
+  return Array.from(set).sort((a, b) => b.localeCompare(a));
+}
+
+// Ligas que tienen al menos una fila de estadísticas en la temporada.
+export async function getLeaguesWithData(season = CURRENT_SEASON): Promise<string[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("player_season_stats").select("league_id").eq("season", season).limit(10000);
+  if (error) throw error;
+  return Array.from(new Set((data ?? []).map((r) => String(r.league_id))));
+}
+
 export type PlayerListItem = Player & { season_stats: PlayerSeasonStats[] };
 
 export type PlayerFilters = {
@@ -22,6 +41,8 @@ export type PlayerFilters = {
   minMinutes?: number;
   maxAge?: number;
   minAge?: number;
+  // ligas a incluir (por liga elegida o por país); vacío = todas
+  leagueIds?: string[];
 };
 
 export async function getTeams() {
@@ -47,7 +68,7 @@ export async function getPlayers(filters: PlayerFilters, season = CURRENT_SEASON
   let query = supabase
     .from("players")
     .select(
-      "*, teams(id, name, logo_url), season_stats:player_season_stats!inner(id, player_id, season, team_id, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
+      "*, teams(id, name, logo_url), season_stats:player_season_stats!inner(id, player_id, season, league_id, team_id, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
     )
     .eq("player_season_stats.season", season)
     .limit(1000);
@@ -57,6 +78,7 @@ export async function getPlayers(filters: PlayerFilters, season = CURRENT_SEASON
   if (filters.team) query = query.eq("team_id", filters.team);
   if (filters.nationality) query = query.eq("nationality", filters.nationality);
   if (filters.minMinutes !== undefined) query = query.gte("player_season_stats.minutes_played", filters.minMinutes);
+  if (filters.leagueIds?.length) query = query.in("player_season_stats.league_id", filters.leagueIds);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -145,18 +167,21 @@ export type PositionPoolPlayer = {
   season_stats: PlayerSeasonStats[];
 };
 
+// Pares para percentiles: misma posición, misma temporada y misma liga.
 export async function getPositionSeasonStats(
   positionGroup: PositionGroup,
-  season = CURRENT_SEASON
+  season = CURRENT_SEASON,
+  leagueId = DEFAULT_LEAGUE
 ): Promise<PositionPoolPlayer[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("players")
     .select(
-      "id, full_name, teams(id, name, logo_url), season_stats:player_season_stats!inner(season, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
+      "id, full_name, teams(id, name, logo_url), season_stats:player_season_stats!inner(season, league_id, matches_played, starts, minutes_played, nineties, goals, assists, yellow_cards, red_cards, stats)"
     )
     .eq("position_group", positionGroup)
     .eq("player_season_stats.season", season)
+    .eq("player_season_stats.league_id", leagueId)
     .limit(1000);
   if (error) throw error;
   return (data ?? []) as unknown as PositionPoolPlayer[];

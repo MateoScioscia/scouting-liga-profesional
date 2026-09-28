@@ -7,9 +7,9 @@ const SECTIONS: { heading: string; links: { href: string; label: string; hint: s
   {
     heading: "Principal",
     links: [
-      { href: "/jugadores", label: "Jugadores", hint: "Base de datos y scouting", icon: "⚽" },
+      { href: "/jugadores", label: "Jugadores", hint: "Base de datos y seguimiento", icon: "⚽" },
       { href: "/comparar", label: "Comparar", hint: "Comparativa lado a lado", icon: "⇄" },
-      { href: "/scouting", label: "Scouting externo", hint: "Objetivos de otras ligas", icon: "🔍" },
+      { href: "/scouting", label: "Seguimiento externo", hint: "Objetivos de otras ligas", icon: "🔍" },
     ],
   },
   {
@@ -26,7 +26,7 @@ export default function Sidebar() {
       <Link href="/jugadores" className="flex items-center gap-2 px-5 py-6">
         <span className="text-2xl">⚽</span>
         <span className="font-semibold tracking-tight text-lg leading-tight">
-          Scouting <span className="text-accent-2">LPF</span>
+          Seguimiento de <span className="text-accent-2">Futbolistas</span>
         </span>
       </Link>
       <nav className="flex-1 px-3 pb-6 flex flex-col gap-5">

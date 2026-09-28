@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scouting LPF — Análisis de jugadores",
-  description: "Plataforma de scouting: KPIs, filtros y comparación de jugadores de la Liga Profesional Argentina.",
+  title: "Seguimiento de Futbolistas",
+  description: "Seguimiento de futbolistas del fútbol argentino: indicadores, filtros por temporada y liga, evolución y comparación de jugadores.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

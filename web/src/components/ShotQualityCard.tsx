@@ -8,7 +8,7 @@ export default function ShotQualityCard({ proxy }: { proxy: ShotQualityProxy }) 
       <p className="text-xs text-muted mb-4">
         Estimación simplificada: compara los goles reales contra los que convertiría un jugador promedio de la
         misma posición con la misma cantidad de tiros al arco. No usa la ubicación real de cada disparo, así que{" "}
-        <strong>no es un xG real</strong> — es una referencia de sobre/bajo rendimiento.
+        <strong>no son goles esperados reales</strong> — es una referencia de sobre/bajo rendimiento.
       </p>
       <div className="grid grid-cols-3 gap-3 text-center">
         <div>

@@ -112,7 +112,7 @@ export default function ScoutingMatchStatsUploader() {
           className="block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#06170e] hover:file:bg-accent-2"
         />
         <p className="text-xs text-muted mt-1">
-          Pensado para exports tipo Wyscout con una fila por partido. Sirve para jugadores de scouting externo (fuera
+          Pensado para exports tipo Wyscout con una fila por partido. Sirve para jugadores de seguimiento externo (fuera
           del roster de la Liga Profesional), que se ven en una página de análisis aparte.
         </p>
       </div>
