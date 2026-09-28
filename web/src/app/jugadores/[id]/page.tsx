@@ -226,7 +226,7 @@ export default async function PlayerPage({
         <div className="rounded-xl border border-border bg-surface p-5">
           <h2 className="font-medium mb-1">Índices compuestos</h2>
           <p className="text-xs text-muted mb-4">
-            Rating 0-100 por categoría, promedio de los percentiles de esa categoría frente al resto de{" "}
+            Índice 0-100 por categoría, promedio de los percentiles de esa categoría frente al resto de{" "}
             {POSITION_LABELS[positionGroup].toLowerCase()}es de la liga.
           </p>
           <div className="flex flex-wrap justify-around gap-4">
