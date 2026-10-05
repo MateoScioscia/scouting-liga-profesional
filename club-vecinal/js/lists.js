@@ -4,7 +4,9 @@ import { icons } from './icons.js';
 import {
   CATEGORIES, categoryByKey, fromISODate, formatDMY, ageOn, startOfDay, certStatus, CERT_ALERT_DAYS,
 } from './rules.js';
-import { activeSocios, getSocio, bajaSocio, ACTIVITIES, findHorario, horariosOf } from './store.js';
+import {
+  activeSocios, getSocio, bajaSocio, ACTIVITIES, findHorario, horariosOf, activitySummary, altasPorMes,
+} from './store.js';
 
 const fmt = (iso) => (iso ? formatDMY(fromISODate(iso)) : '—');
 const fullName = (s) => `${s.apellido}, ${s.nombre}`;
@@ -150,14 +152,42 @@ export function mountReportes(root) {
     .filter((x) => x.st.key !== 'vigente')
     .sort((a, b) => a.st.days - b.st.days);
 
+  const acts = activitySummary();
+  const totalOcupados = acts.reduce((n, a) => n + a.ocupados, 0);
+  const totalCupo = acts.reduce((n, a) => n + a.cupo, 0);
+  const ocupacionGeneral = totalCupo ? Math.round((totalOcupados / totalCupo) * 100) : 0;
+  const completos = acts.reduce((n, a) => n + a.completos, 0);
+  const totalHorarios = acts.reduce((n, a) => n + a.horarios, 0);
+
+  const { months, rows: altas } = altasPorMes(today);
+  const top = [...altas].sort((a, b) => b.total - a.total)[0];
+  const sociosPorActividad = (id) => socios.filter((s) => s.actividadId === id).length;
+
   root.innerHTML = `
     <section class="card">
       <h1 class="page-title" tabindex="-1">Reportes</h1>
+      <p class="note">Los cupos iniciales y el histórico de altas son datos de ejemplo; los socios que se dan de alta en la aplicación se suman a estas cifras.</p>
       <div class="stats">
-        <div class="stat"><b>${socios.length}</b><span>Socios activos</span></div>
+        <div class="stat"><b>${socios.length}</b><span>Socios activos cargados</span></div>
+        <div class="stat"><b>${ocupacionGeneral}%</b><span>Ocupación general (${totalOcupados}/${totalCupo} lugares)</span></div>
+        <div class="stat"><b>${completos}/${totalHorarios}</b><span>Horarios completos</span></div>
         <div class="stat"><b>${withStatus.filter((x) => x.st.key === 'por_vencer').length}</b><span>Certificados por vencer (${CERT_ALERT_DAYS} días)</span></div>
         <div class="stat"><b>${withStatus.filter((x) => x.st.key === 'vencido').length}</b><span>Certificados vencidos</span></div>
       </div>
+
+      <section class="sec"><header class="sec-head"><h2>Ocupación por actividad</h2></header>
+        <ul class="act-list">${acts.map((a) => `
+          <li><div class="act-row"><span><strong>${esc(a.nombre)}</strong> <span class="muted">· ${a.completos}/${a.horarios} horarios completos · ${sociosPorActividad(a.id)} socios cargados</span></span><span class="muted">${a.ocupados}/${a.cupo} (${a.pct}%)</span></div>
+            <div class="bar" role="img" aria-label="${esc(a.nombre)}: ${a.pct}% ocupado"><span style="width:${Math.min(100, a.pct)}%" class="${a.pct >= 90 ? 'full' : ''}"></span></div></li>`).join('')}
+        </ul></section>
+
+      <section class="sec"><header class="sec-head"><h2>Altas por actividad <span class="lbl-note">(últimos 6 meses · datos de ejemplo)</span></h2></header>
+        <div class="tbl-wrap"><table class="tbl tbl-num">
+          <thead><tr><th>Actividad</th>${months.map((m) => `<th>${esc(m.label)}</th>`).join('')}<th>Total</th></tr></thead>
+          <tbody>${altas.map((r) => `<tr><td data-label="Actividad"><strong>${esc(r.nombre)}</strong></td>${r.values.map((v, i) => `<td data-label="${esc(months[i].label)}">${v}</td>`).join('')}<td data-label="Total"><strong>${r.total}</strong></td></tr>`).join('')}</tbody>
+        </table></div>
+        <p class="hint pad">Actividad más demandada: <strong>${esc(top.nombre)}</strong> (${top.total} altas en 6 meses).</p></section>
+
       <div class="ficha-grid">
         <section class="sec"><header class="sec-head"><h2>Socios por categoría</h2></header>
           <dl class="kv">${CATEGORIES.map((c) => `<div><dt>${esc(c.label)} (${c.min} a ${c.max} años)</dt><dd>${socios.filter((s) => s.categoria === c.key).length}</dd></div>`).join('')}</dl></section>

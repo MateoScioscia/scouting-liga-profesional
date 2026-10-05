@@ -93,3 +93,56 @@ export function findHorario(horarioId) {
   }
   return null;
 }
+
+// Fictional sign-up history per activity: the 5 previous months (oldest first) + a partial current month.
+// Real sign-ups made in the app are added on top of the current month.
+export const ALTAS_BASE = Object.freeze({
+  futbol: [14, 11, 16, 13, 18, 7],
+  basquet: [8, 9, 7, 10, 9, 4],
+  natacion: [12, 15, 11, 13, 14, 6],
+  voley: [6, 5, 8, 7, 6, 3],
+  tenis: [4, 6, 5, 7, 5, 2],
+  gimnasia: [18, 16, 19, 17, 21, 9],
+});
+
+/** Occupancy per activity: places taken / total places, and how many schedules are full. */
+export function activitySummary() {
+  return ACTIVITIES.map((a) => {
+    const hs = horariosOf(a.id);
+    const ocupados = hs.reduce((n, h) => n + h.ocupados, 0);
+    const cupo = hs.reduce((n, h) => n + h.cupo, 0);
+    return {
+      id: a.id,
+      nombre: a.nombre,
+      ocupados,
+      cupo,
+      pct: cupo ? Math.round((ocupados / cupo) * 100) : 0,
+      completos: hs.filter((h) => h.completo).length,
+      horarios: hs.length,
+    };
+  });
+}
+
+/** New sign-ups per activity for the last 6 months (current one last). */
+export function altasPorMes(today = new Date()) {
+  const fmtMonth = new Intl.DateTimeFormat('es-AR', { month: 'short' });
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const label = fmtMonth.format(d).replace('.', '');
+    months.push({ y: d.getFullYear(), m: d.getMonth(), label: label[0].toUpperCase() + label.slice(1) });
+  }
+  const socios = activeSocios();
+  const rows = ACTIVITIES.map((a) => {
+    const values = months.map((mo, idx) => {
+      const real = socios.filter((s) => {
+        if (s.actividadId !== a.id) return false;
+        const at = new Date(s.altaAt);
+        return at.getFullYear() === mo.y && at.getMonth() === mo.m;
+      }).length;
+      return (ALTAS_BASE[a.id]?.[idx] ?? 0) + real;
+    });
+    return { id: a.id, nombre: a.nombre, values, total: values.reduce((x, y) => x + y, 0) };
+  });
+  return { months, rows };
+}

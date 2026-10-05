@@ -236,7 +236,10 @@ select {
 .bar span { display: block; height: 100%; background: var(--blue); border-radius: 999px; }
 .bar span.full { background: #e5384b; }
 
-.stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 18px; }
+.stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 18px; }
+.tbl-num td:not(:first-child), .tbl-num th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.sec > .tbl-wrap { padding: 4px 8px 0; }
+.sec > .note { padding: 0 14px; }
 .stat { background: var(--sky); border: 1px solid var(--sky-b); border-radius: 8px; padding: 14px 16px; }
 .stat b { display: block; font-size: 28px; line-height: 1.1; color: #1d4f9f; }
 .stat span { font-size: 13.5px; color: var(--muted); }
@@ -290,11 +293,12 @@ dialog::backdrop { background: rgba(14, 28, 52, .5); }
   .infobox { margin-top: 4px; margin-bottom: 12px; }
 
   /* table rows become cards */
-  .tbl thead { display: none; }
-  .tbl, .tbl tbody, .tbl tr, .tbl td { display: block; width: 100%; }
-  .tbl tr { padding: 10px 4px; border-bottom: 1px solid var(--line); }
-  .tbl td { display: flex; justify-content: space-between; gap: 12px; padding: 4px 6px; border: 0; text-align: right; }
-  .tbl td::before { content: attr(data-label); color: var(--muted); font-size: 13px; text-align: left; }
+  .tbl:not(.tbl-num) thead { display: none; }
+  .tbl:not(.tbl-num), .tbl:not(.tbl-num) tbody, .tbl:not(.tbl-num) tr, .tbl:not(.tbl-num) td { display: block; width: 100%; }
+  .tbl:not(.tbl-num) tr { padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .tbl:not(.tbl-num) td { display: flex; justify-content: space-between; gap: 12px; padding: 4px 6px; border: 0; text-align: right; }
+  .tbl:not(.tbl-num) td::before { content: attr(data-label); color: var(--muted); font-size: 13px; text-align: left; }
+  .tbl-num { min-width: 480px; font-size: 13.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
