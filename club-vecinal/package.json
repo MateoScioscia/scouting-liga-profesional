@@ -1,0 +1,11 @@
+{
+  "name": "club-vecinal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Club Atlético Vecinal — alta de socios",
+  "scripts": {
+    "test": "node --test",
+    "start": "npx --yes serve . -l 3001"
+  }
+}

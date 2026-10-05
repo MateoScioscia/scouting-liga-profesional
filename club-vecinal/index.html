@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b2a5b">
+  <meta name="description" content="Club Atlético Vecinal: alta y gestión de socios.">
+  <title>Club Atlético Vecinal — Alta de socio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l11 4v9c0 7-5 12-11 15C10 27 5 22 5 15V6z' fill='%230b2a5b'/%3E%3Cpath d='M16 10v9M11.5 14.5h9' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#app">Saltar al contenido</a>
+
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand" href="#/socios" id="brand"></a>
+      <nav class="mainnav" aria-label="Principal">
+        <a href="#/socios" data-nav="socios">Socios</a>
+        <a href="#/actividades" data-nav="actividades">Actividades</a>
+        <a href="#/reportes" data-nav="reportes">Reportes</a>
+      </nav>
+      <div class="user" id="user"></div>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <dialog id="dlg" aria-labelledby="dlg-title"></dialog>
+
+  <noscript><p class="noscript">Esta aplicación necesita JavaScript habilitado.</p></noscript>
+
+  <!-- ============ 1. Pantalla principal — Alta de socio ============ -->
+  <template id="tpl-alta">
+    <section class="card" aria-labelledby="alta-title">
+      <h1 id="alta-title" class="page-title" tabindex="-1">Alta de socio</h1>
+      <div id="alta-summary" class="summary" role="alert" hidden></div>
+
+      <form id="form-alta" novalidate autocomplete="off">
+
+        <!-- 1 · Datos personales del socio -->
+        <section class="sec" aria-labelledby="s1-t">
+          <header class="sec-head"><span class="sec-num" aria-hidden="true">1</span><h2 id="s1-t">Datos personales del socio</h2></header>
+          <div class="sec-body grid grid-1">
+            <div class="col">
+              <div class="field" data-field="apellido">
+                <label for="f-apellido">Apellido <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-apellido" name="apellido" data-main type="text" maxlength="50" autocomplete="off" aria-required="true" aria-describedby="e-apellido"></div>
+                <p class="msg" id="e-apellido" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="nombre">
+                <label for="f-nombre">Nombre <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-nombre" name="nombre" data-main type="text" maxlength="50" autocomplete="off" aria-required="true" aria-describedby="e-nombre"></div>
+                <p class="msg" id="e-nombre" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="dni">
+                <label for="f-dni">DNI <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-dni" name="dni" data-main type="text" inputmode="numeric" maxlength="8" autocomplete="off" aria-required="true" aria-describedby="e-dni"><span class="ok-ic" data-icon="check"></span></div>
+                <p class="msg" id="e-dni" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="nac">
+                <label for="f-nac">Fecha de nacimiento <i class="req" aria-hidden="true">*</i></label>
+                <div class="control has-pick"><input id="f-nac" name="nac" data-main type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" aria-required="true" aria-describedby="e-nac edad-txt"><span class="pick-ic" data-icon="calendar"></span><input type="date" class="native-date" tabindex="-1" aria-label="Elegir fecha de nacimiento en el calendario" data-for="nac" min="1900-01-01"></div>
+                <p class="hint" id="edad-txt" aria-live="polite"></p>
+                <p class="msg" id="e-nac" aria-live="polite" hidden></p>
+              </div>
+            </div>
+
+            <div class="col">
+              <div class="field" data-field="telefono">
+                <label for="f-telefono">Teléfono <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-telefono" name="telefono" data-main type="text" inputmode="tel" maxlength="20" autocomplete="off" aria-required="true" aria-describedby="e-telefono"></div>
+                <p class="msg" id="e-telefono" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="email">
+                <label for="f-email">Email (opcional)</label>
+                <div class="control"><input id="f-email" name="email" data-main type="email" inputmode="email" maxlength="100" autocomplete="off" aria-describedby="e-email"><span class="ok-ic" data-icon="check"></span></div>
+                <p class="msg" id="e-email" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="categoria">
+                <label for="f-categoria">Categoría <span class="lbl-note">(según edad)</span>
+                  <button type="button" class="info-btn" aria-describedby="tip-cat" data-icon="info"><span class="sr-only">Cómo se calcula la categoría</span></button>
+                  <span class="tip" id="tip-cat" role="tooltip">Se calcula automáticamente según la fecha de nacimiento: Menor 4 a 12 años, Cadete 13 a 17 años, Mayor 18 a 128 años.</span>
+                </label>
+                <div class="control"><input id="f-categoria" class="ro" type="text" readonly tabindex="-1" placeholder="Se calcula automáticamente"></div>
+              </div>
+            </div>
+
+            <div class="col">
+              <div class="field photo" data-field="foto">
+                <span class="lbl">Foto <span class="lbl-note">(opcional)</span></span>
+                <div class="dropbox">
+                  <div id="photo-preview" class="avatar" data-icon="avatar"></div>
+                  <button type="button" class="btn btn-soft" id="btn-foto">Seleccionar foto</button>
+                  <button type="button" class="link" id="btn-foto-rm" hidden>Quitar foto</button>
+                  <p class="hint">Formatos: JPG, PNG.<br>Tamaño máximo: 5 MB.</p>
+                </div>
+                <input type="file" id="f-foto" accept="image/jpeg,image/png" hidden>
+                <p class="msg" id="e-foto" aria-live="polite" hidden></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 · Datos del tutor (solo menores) -->
+        <section class="sec" id="sec-tutor" aria-labelledby="s2-t" hidden>
+          <header class="sec-head"><span class="sec-num" aria-hidden="true">2</span><h2 id="s2-t">Datos del tutor / adulto responsable <span class="lbl-note">(solo para menores de edad)</span></h2></header>
+          <div class="sec-body">
+            <p class="note">Este bloque se muestra solo si el socio es menor de 18 años.</p>
+            <div class="grid grid-tutor">
+              <div class="field" data-field="t_apellido">
+                <label for="f-t_apellido">Apellido <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-t_apellido" name="t_apellido" data-main type="text" maxlength="50" autocomplete="off" aria-required="true" aria-describedby="e-t_apellido"></div>
+                <p class="msg" id="e-t_apellido" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="t_nombre">
+                <label for="f-t_nombre">Nombre <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-t_nombre" name="t_nombre" data-main type="text" maxlength="50" autocomplete="off" aria-required="true" aria-describedby="e-t_nombre"></div>
+                <p class="msg" id="e-t_nombre" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="t_dni">
+                <label for="f-t_dni">DNI <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-t_dni" name="t_dni" data-main type="text" inputmode="numeric" maxlength="8" autocomplete="off" aria-required="true" aria-describedby="e-t_dni"></div>
+                <p class="msg" id="e-t_dni" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="t_vinculo">
+                <label for="f-t_vinculo">Vínculo <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><select id="f-t_vinculo" name="t_vinculo" data-main aria-required="true" aria-describedby="e-t_vinculo">
+                  <option value="">Seleccione</option>
+                  <option>Padre</option><option>Madre</option><option>Tutor Legal</option>
+                </select></div>
+                <p class="msg" id="e-t_vinculo" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="t_email">
+                <label for="f-t_email">Email <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-t_email" name="t_email" data-main type="email" inputmode="email" maxlength="100" autocomplete="off" aria-required="true" aria-describedby="e-t_email"></div>
+                <p class="msg" id="e-t_email" aria-live="polite" hidden></p>
+              </div>
+              <div class="field" data-field="t_telefono">
+                <label for="f-t_telefono">Teléfono <i class="req" aria-hidden="true">*</i></label>
+                <div class="control"><input id="f-t_telefono" name="t_telefono" data-main type="text" inputmode="tel" maxlength="20" autocomplete="off" aria-required="true" aria-describedby="e-t_telefono"></div>
+                <p class="msg" id="e-t_telefono" aria-live="polite" hidden></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3 · Actividad e inscripción -->
+        <section class="sec" aria-labelledby="s3-t">
+          <header class="sec-head"><span class="sec-num" aria-hidden="true" id="num-act">3</span><h2 id="s3-t">Actividad e inscripción</h2></header>
+          <div class="sec-body grid grid-2">
+            <div class="field" data-field="actividad">
+              <label for="f-actividad">Actividad <i class="req" aria-hidden="true">*</i></label>
+              <div class="control"><select id="f-actividad" name="actividad" data-main aria-required="true" aria-describedby="e-actividad"></select></div>
+              <p class="msg" id="e-actividad" aria-live="polite" hidden></p>
+            </div>
+            <div class="field" data-field="horario">
+              <label id="l-horario" for="f-horario">Horario <i class="req" aria-hidden="true">*</i></label>
+              <div class="control select-wrap">
+                <button type="button" id="f-horario" class="select-btn" data-main aria-haspopup="listbox" aria-expanded="false" aria-controls="horario-list" aria-describedby="e-horario" disabled>
+                  <span id="f-horario-text" class="placeholder">Primero seleccione una actividad</span><span data-icon="calendar"></span>
+                </button>
+                <ul id="horario-list" class="listbox" role="listbox" tabindex="-1" aria-labelledby="l-horario" hidden></ul>
+                <input type="hidden" id="f-horario-value" name="horario">
+              </div>
+              <p class="msg" id="e-horario" aria-live="polite" hidden></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 · Certificado médico -->
+        <section class="sec" aria-labelledby="s4-t">
+          <header class="sec-head"><span class="sec-num" aria-hidden="true" id="num-cert">4</span><h2 id="s4-t">Certificado médico <span class="lbl-note">(apto físico)</span></h2></header>
+          <div class="sec-body grid grid-cert">
+            <div class="field" data-field="emision">
+              <label for="f-emision">Fecha de emisión <i class="req" aria-hidden="true">*</i></label>
+              <div class="control has-pick"><input id="f-emision" name="emision" data-main type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="off" aria-required="true" aria-describedby="e-emision"><span class="pick-ic" data-icon="calendar"></span><input type="date" class="native-date" tabindex="-1" aria-label="Elegir fecha de emisión en el calendario" data-for="emision" min="1900-01-01"></div>
+              <p class="msg" id="e-emision" aria-live="polite" hidden></p>
+            </div>
+            <div class="field" data-field="venc">
+              <label for="f-venc">Fecha de vencimiento <span class="lbl-note">(se calcula automáticamente)</span></label>
+              <div class="control"><input id="f-venc" class="ro" type="text" readonly tabindex="-1" placeholder="dd/mm/aaaa"></div>
+            </div>
+            <div class="infobox"><span data-icon="info"></span><p>Se enviará una alerta 30 días antes del vencimiento del certificado al usuario y al club.</p></div>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button type="button" class="btn btn-gray" id="btn-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-save"><span data-icon="save"></span>Guardar alta</button>
+        </div>
+      </form>
+    </section>
+  </template>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
