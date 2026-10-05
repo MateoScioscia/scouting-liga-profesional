@@ -22,9 +22,9 @@ Pantallas de destino de los botones (no estaban en el diseño): **Listado de soc
 - **Sin backend**: los socios se guardan en el `localStorage` del navegador (cada dispositivo ve los suyos). `js/store.js` es el único punto a reemplazar por una API/Supabase.
 - **DNI "persona real"** (suposición 4): `js/registry.js` simula el servicio externo (rechaza DNI repetidos como `11111111` o menores a 1.000.000). Reemplazar por la integración real.
 - **Correo de confirmación y alerta a 30 días**: el pop-up lo informa como en el diseño, pero **no se envía ningún mail**; la alerta se refleja en *Reportes* y en la ficha.
-- Actividades y cupos son datos de ejemplo (`js/store.js`); el primer grupo reproduce el del diseño (12/20, 20/20 Completo, 5/20).
+- **Datos de demostración**: al abrir la app por primera vez se cargan 173 socios ficticios (`js/seed.js`, determinista y relativo a la fecha actual). Cupos, listado, Reportes y altas por mes se calculan **todos a partir de esos mismos socios**, por eso siempre coinciden. Fútbol reproduce el diseño (12/20, miércoles 20/20 Completo, 5/20). El botón *Restablecer datos de ejemplo* (en Socios) vuelve a este estado.
 - Mensajes no especificados en el diseño (teléfono, fecha de emisión futura, foto) fueron redactados en el mismo estilo.
 
 ## Tests
-`tests/rules.test.js`: formatos, rangos de edad y categoría, fechas límite, vencimiento (incluye 29/02), alerta a 30 días, DNI, teléfono, email, foto.
-Además se ejecutó una prueba de caja negra en Chromium (1280, 375 y 320 px, 53 chequeos) cubriendo el flujo completo.
+`tests/rules.test.js` y `tests/store.test.js` (coherencia de los datos de ejemplo: cupos = socios, altas por mes = socios, fechas y certificados válidos): formatos, rangos de edad y categoría, fechas límite, vencimiento (incluye 29/02), alerta a 30 días, DNI, teléfono, email, foto.
+Además se ejecutó una prueba de caja negra en Chromium (1280, 375 y 320 px, 53 chequeos + 16 de coherencia entre pantallas) cubriendo el flujo completo.

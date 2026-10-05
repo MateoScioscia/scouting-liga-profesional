@@ -1,40 +1,42 @@
 // Persistence layer. Everything lives in this browser's localStorage (no backend).
 // Swap these functions for API calls to move to a shared database (e.g. Supabase).
 
-const KEY = 'clubvecinal.socios.v1';
+import { generateDemoSocios } from './seed.js';
+
+const KEY = 'clubvecinal.socios.v2';
 let memory = []; // fallback when localStorage is blocked (private mode, etc.)
 
-// Seeded activities. `base` = places already taken before this app (so cupos look realistic).
+// Activities and cupos. Places taken are counted from the members in storage (never a fixed number).
 // The first activity reproduces the schedules shown in the design (12/20, 20/20 "Completo", 5/20).
 export const ACTIVITIES = Object.freeze([
   { id: 'futbol', nombre: 'Fútbol', horarios: [
-    { id: 'futbol-lun', dia: 'Lun', desde: '18:00', hasta: '19:00', cupo: 20, base: 12 },
-    { id: 'futbol-mie', dia: 'Mié', desde: '18:00', hasta: '19:00', cupo: 20, base: 20 },
-    { id: 'futbol-vie', dia: 'Vie', desde: '18:00', hasta: '19:00', cupo: 20, base: 5 },
+    { id: 'futbol-lun', dia: 'Lun', desde: '18:00', hasta: '19:00', cupo: 20 },
+    { id: 'futbol-mie', dia: 'Mié', desde: '18:00', hasta: '19:00', cupo: 20 },
+    { id: 'futbol-vie', dia: 'Vie', desde: '18:00', hasta: '19:00', cupo: 20 },
   ] },
   { id: 'basquet', nombre: 'Básquet', horarios: [
-    { id: 'basquet-mar', dia: 'Mar', desde: '19:00', hasta: '20:30', cupo: 16, base: 8 },
-    { id: 'basquet-jue', dia: 'Jue', desde: '19:00', hasta: '20:30', cupo: 16, base: 16 },
-    { id: 'basquet-sab', dia: 'Sáb', desde: '10:00', hasta: '11:30', cupo: 16, base: 3 },
+    { id: 'basquet-mar', dia: 'Mar', desde: '19:00', hasta: '20:30', cupo: 16 },
+    { id: 'basquet-jue', dia: 'Jue', desde: '19:00', hasta: '20:30', cupo: 16 },
+    { id: 'basquet-sab', dia: 'Sáb', desde: '10:00', hasta: '11:30', cupo: 16 },
   ] },
   { id: 'natacion', nombre: 'Natación', horarios: [
-    { id: 'natacion-lun', dia: 'Lun', desde: '17:00', hasta: '18:00', cupo: 12, base: 10 },
-    { id: 'natacion-mie', dia: 'Mié', desde: '17:00', hasta: '18:00', cupo: 12, base: 4 },
-    { id: 'natacion-vie', dia: 'Vie', desde: '17:00', hasta: '18:00', cupo: 12, base: 12 },
+    { id: 'natacion-lun', dia: 'Lun', desde: '17:00', hasta: '18:00', cupo: 12 },
+    { id: 'natacion-mie', dia: 'Mié', desde: '17:00', hasta: '18:00', cupo: 12 },
+    { id: 'natacion-vie', dia: 'Vie', desde: '17:00', hasta: '18:00', cupo: 12 },
   ] },
   { id: 'voley', nombre: 'Vóley', horarios: [
-    { id: 'voley-mar', dia: 'Mar', desde: '20:00', hasta: '21:30', cupo: 14, base: 6 },
-    { id: 'voley-jue', dia: 'Jue', desde: '20:00', hasta: '21:30', cupo: 14, base: 14 },
+    { id: 'voley-mar', dia: 'Mar', desde: '20:00', hasta: '21:30', cupo: 14 },
+    { id: 'voley-jue', dia: 'Jue', desde: '20:00', hasta: '21:30', cupo: 14 },
   ] },
   { id: 'tenis', nombre: 'Tenis', horarios: [
-    { id: 'tenis-sab-9', dia: 'Sáb', desde: '09:00', hasta: '10:00', cupo: 8, base: 2 },
-    { id: 'tenis-sab-10', dia: 'Sáb', desde: '10:00', hasta: '11:00', cupo: 8, base: 8 },
-    { id: 'tenis-dom', dia: 'Dom', desde: '09:00', hasta: '10:00', cupo: 8, base: 5 },
+    { id: 'tenis-sab-9', dia: 'Sáb', desde: '09:00', hasta: '10:00', cupo: 8 },
+    { id: 'tenis-sab-10', dia: 'Sáb', desde: '10:00', hasta: '11:00', cupo: 8 },
+    { id: 'tenis-dom', dia: 'Dom', desde: '09:00', hasta: '10:00', cupo: 8 },
   ] },
   { id: 'gimnasia', nombre: 'Gimnasia', horarios: [
-    { id: 'gimnasia-lun', dia: 'Lun', desde: '08:00', hasta: '09:00', cupo: 25, base: 9 },
-    { id: 'gimnasia-mie', dia: 'Mié', desde: '08:00', hasta: '09:00', cupo: 25, base: 14 },
-    { id: 'gimnasia-vie', dia: 'Vie', desde: '08:00', hasta: '09:00', cupo: 25, base: 25 },
+    { id: 'gimnasia-lun', dia: 'Lun', desde: '08:00', hasta: '09:00', cupo: 25 },
+    { id: 'gimnasia-mie', dia: 'Mié', desde: '08:00', hasta: '09:00', cupo: 25 },
+    { id: 'gimnasia-vie', dia: 'Vie', desde: '08:00', hasta: '09:00', cupo: 25 },
   ] },
 ]);
 
@@ -76,8 +78,7 @@ export function bajaSocio(id) {
 export const getActivity = (id) => ACTIVITIES.find((a) => a.id === id) ?? null;
 
 function decorate(h) {
-  const taken = activeSocios().filter((s) => s.horarioId === h.id).length;
-  const ocupados = h.base + taken;
+  const ocupados = activeSocios().filter((s) => s.horarioId === h.id).length;
   return { ...h, label: `${h.dia} ${h.desde} - ${h.hasta}`, ocupados, completo: ocupados >= h.cupo };
 }
 
@@ -96,14 +97,6 @@ export function findHorario(horarioId) {
 
 // Fictional sign-up history per activity: the 5 previous months (oldest first) + a partial current month.
 // Real sign-ups made in the app are added on top of the current month.
-export const ALTAS_BASE = Object.freeze({
-  futbol: [14, 11, 16, 13, 18, 7],
-  basquet: [8, 9, 7, 10, 9, 4],
-  natacion: [12, 15, 11, 13, 14, 6],
-  voley: [6, 5, 8, 7, 6, 3],
-  tenis: [4, 6, 5, 7, 5, 2],
-  gimnasia: [18, 16, 19, 17, 21, 9],
-});
 
 /** Occupancy per activity: places taken / total places, and how many schedules are full. */
 export function activitySummary() {
@@ -134,15 +127,27 @@ export function altasPorMes(today = new Date()) {
   }
   const socios = activeSocios();
   const rows = ACTIVITIES.map((a) => {
-    const values = months.map((mo, idx) => {
+    const values = months.map((mo) => {
       const real = socios.filter((s) => {
         if (s.actividadId !== a.id) return false;
         const at = new Date(s.altaAt);
         return at.getFullYear() === mo.y && at.getMonth() === mo.m;
       }).length;
-      return (ALTAS_BASE[a.id]?.[idx] ?? 0) + real;
+      return real;
     });
     return { id: a.id, nombre: a.nombre, values, total: values.reduce((x, y) => x + y, 0) };
   });
   return { months, rows };
 }
+
+/** Replaces everything with the demo members (also used by "Restablecer datos de ejemplo"). */
+export function resetDemo(today = new Date()) {
+  saveSocios(generateDemoSocios(today));
+}
+
+// First run (nothing stored yet): load the demo members so the app shows realistic data.
+(function init() {
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch { /* no storage: memory only */ }
+  if (raw === null) resetDemo();
+})();

@@ -59,6 +59,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 20px 48px; }
 .page-title { margin: 0 0 16px; font-size: 24px; line-height: 1.2; font-weight: 700; }
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
 .page-head .page-title { margin: 0; }
+.head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.more { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.more .hint { margin: 0; }
 
 /* ---------- Sections ---------- */
 .sec { border: 1px solid var(--sky-b); border-radius: 8px; margin-bottom: 16px; background: #fff; }
@@ -290,6 +293,9 @@ dialog::backdrop { background: rgba(14, 28, 52, .5); }
   .dlg-actions { flex-direction: column-reverse; }
   .dlg-actions .btn { width: 100%; }
   .page-head { flex-wrap: wrap; }
+  .head-actions { width: 100%; flex-direction: column-reverse; }
+  .head-actions .btn { width: 100%; }
+  .more .btn { width: 100%; }
   .infobox { margin-top: 4px; margin-bottom: 12px; }
 
   /* table rows become cards */

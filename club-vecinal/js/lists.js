@@ -5,7 +5,7 @@ import {
   CATEGORIES, categoryByKey, fromISODate, formatDMY, ageOn, startOfDay, certStatus, CERT_ALERT_DAYS,
 } from './rules.js';
 import {
-  activeSocios, getSocio, bajaSocio, ACTIVITIES, findHorario, horariosOf, activitySummary, altasPorMes,
+  activeSocios, getSocio, bajaSocio, ACTIVITIES, findHorario, horariosOf, activitySummary, altasPorMes, resetDemo,
 } from './store.js';
 
 const fmt = (iso) => (iso ? formatDMY(fromISODate(iso)) : '—');
@@ -27,12 +27,16 @@ function certBadge(iso, today = startOfDay()) {
 
 export function mountSocios(root, ctx) {
   const all = activeSocios().sort((a, b) => a.apellido.localeCompare(b.apellido, 'es') || a.nombre.localeCompare(b.nombre, 'es'));
+  const PAGE = 25;
 
   root.innerHTML = `
     <section class="card">
       <div class="page-head">
         <h1 class="page-title" tabindex="-1">Socios</h1>
-        <a class="btn btn-primary" href="#/alta">+ Nuevo socio</a>
+        <div class="head-actions">
+          <button type="button" class="btn btn-gray" id="btn-reset">Restablecer datos de ejemplo</button>
+          <a class="btn btn-primary" href="#/alta">+ Nuevo socio</a>
+        </div>
       </div>
       ${all.length === 0 ? `
         <div class="empty"><p>Todavía no hay socios registrados.</p><a class="btn btn-primary" href="#/alta">Dar de alta el primer socio</a></div>
@@ -43,15 +47,31 @@ export function mountSocios(root, ctx) {
           <thead><tr><th>N°</th><th>Socio</th><th>DNI</th><th>Categoría</th><th>Actividad</th><th>Certificado médico</th></tr></thead>
           <tbody id="rows"></tbody>
         </table></div>
-        <p class="empty-q" id="no-results" hidden>No se encontraron socios con ese criterio.</p>`}
+        <p class="empty-q" id="no-results" hidden>No se encontraron socios con ese criterio.</p>
+        <div class="more"><span class="hint" id="count" aria-live="polite"></span><button type="button" class="btn btn-outline" id="btn-more" hidden>Ver más</button></div>`}
     </section>`;
+
+  root.querySelector('#btn-reset').addEventListener('click', () => {
+    ctx.openDialog({
+      tone: 'warn',
+      icon: icons.warn,
+      title: '¿Restablecer los datos de ejemplo?',
+      body: '<p>Se borrarán los socios actuales y se volverán a cargar los socios ficticios de demostración.</p>',
+      actions: [
+        { label: 'Cancelar', cls: 'btn-outline' },
+        { label: 'Restablecer', cls: 'btn-danger', onClick: () => { resetDemo(); ctx.go('#/socios'); } },
+      ],
+    });
+  });
 
   if (all.length === 0) return;
   const rows = root.querySelector('#rows');
   const today = startOfDay();
+  let list = all;
+  let shown = PAGE;
 
-  const render = (list) => {
-    rows.innerHTML = list.map((s) => {
+  const render = () => {
+    rows.innerHTML = list.slice(0, shown).map((s) => {
       const h = findHorario(s.horarioId);
       return `<tr>
         <td data-label="N°">${esc(s.id)}</td>
@@ -62,13 +82,20 @@ export function mountSocios(root, ctx) {
         <td data-label="Certificado">${certBadge(s.certVenc, today)}</td></tr>`;
     }).join('');
     root.querySelector('#no-results').hidden = list.length > 0;
+    root.querySelector('#count').textContent = list.length
+      ? `Mostrando ${Math.min(shown, list.length)} de ${list.length} socios`
+      : '';
+    root.querySelector('#btn-more').hidden = shown >= list.length;
   };
-  render(all);
+  render();
 
   root.querySelector('#q').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();
-    render(all.filter((s) => `${s.apellido} ${s.nombre} ${s.dni}`.toLowerCase().includes(q)));
+    list = all.filter((s) => `${s.apellido} ${s.nombre} ${s.dni}`.toLowerCase().includes(q));
+    shown = PAGE;
+    render();
   });
+  root.querySelector('#btn-more').addEventListener('click', () => { shown += PAGE; render(); });
 }
 
 // ---------- Ficha ----------
@@ -166,9 +193,9 @@ export function mountReportes(root) {
   root.innerHTML = `
     <section class="card">
       <h1 class="page-title" tabindex="-1">Reportes</h1>
-      <p class="note">Los cupos iniciales y el histórico de altas son datos de ejemplo; los socios que se dan de alta en la aplicación se suman a estas cifras.</p>
+      <p class="note">Datos de demostración: la aplicación incluye socios ficticios y todas las cifras se calculan a partir de ellos; los socios que se den de alta se suman automáticamente.</p>
       <div class="stats">
-        <div class="stat"><b>${socios.length}</b><span>Socios activos cargados</span></div>
+        <div class="stat"><b>${socios.length}</b><span>Socios activos</span></div>
         <div class="stat"><b>${ocupacionGeneral}%</b><span>Ocupación general (${totalOcupados}/${totalCupo} lugares)</span></div>
         <div class="stat"><b>${completos}/${totalHorarios}</b><span>Horarios completos</span></div>
         <div class="stat"><b>${withStatus.filter((x) => x.st.key === 'por_vencer').length}</b><span>Certificados por vencer (${CERT_ALERT_DAYS} días)</span></div>
@@ -177,11 +204,11 @@ export function mountReportes(root) {
 
       <section class="sec"><header class="sec-head"><h2>Ocupación por actividad</h2></header>
         <ul class="act-list">${acts.map((a) => `
-          <li><div class="act-row"><span><strong>${esc(a.nombre)}</strong> <span class="muted">· ${a.completos}/${a.horarios} horarios completos · ${sociosPorActividad(a.id)} socios cargados</span></span><span class="muted">${a.ocupados}/${a.cupo} (${a.pct}%)</span></div>
+          <li><div class="act-row"><span><strong>${esc(a.nombre)}</strong> <span class="muted">· ${a.completos}/${a.horarios} horarios completos · ${sociosPorActividad(a.id)} socios</span></span><span class="muted">${a.ocupados}/${a.cupo} (${a.pct}%)</span></div>
             <div class="bar" role="img" aria-label="${esc(a.nombre)}: ${a.pct}% ocupado"><span style="width:${Math.min(100, a.pct)}%" class="${a.pct >= 90 ? 'full' : ''}"></span></div></li>`).join('')}
         </ul></section>
 
-      <section class="sec"><header class="sec-head"><h2>Altas por actividad <span class="lbl-note">(últimos 6 meses · datos de ejemplo)</span></h2></header>
+      <section class="sec"><header class="sec-head"><h2>Altas por actividad <span class="lbl-note">(últimos 6 meses)</span></h2></header>
         <div class="tbl-wrap"><table class="tbl tbl-num">
           <thead><tr><th>Actividad</th>${months.map((m) => `<th>${esc(m.label)}</th>`).join('')}<th>Total</th></tr></thead>
           <tbody>${altas.map((r) => `<tr><td data-label="Actividad"><strong>${esc(r.nombre)}</strong></td>${r.values.map((v, i) => `<td data-label="${esc(months[i].label)}">${v}</td>`).join('')}<td data-label="Total"><strong>${r.total}</strong></td></tr>`).join('')}</tbody>
