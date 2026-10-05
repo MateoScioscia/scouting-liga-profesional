@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1c1a15">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="La Posta: registro de ingresos y cobro de salidas de estacionamiento.">
+  <title>La Posta — Estacionamiento</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231c1a15'/%3E%3Ctext x='16' y='24' font-size='22' font-weight='700' text-anchor='middle' fill='%23f0ebe0' font-family='sans-serif'%3EP%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="wrap header-row">
+      <div>
+        <h1>Estacionamiento — La Posta</h1>
+        <p class="sub">Ingresos y cobro de salidas</p>
+      </div>
+      <time id="clock" class="clock" aria-label="Hora actual">--:--:--</time>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <div class="tabs-inner wrap">
+      <button type="button" role="tab" id="tab-ingreso" class="tab" aria-controls="view-ingreso" aria-selected="true">
+        <span class="tab-label">Registrar ingreso</span>
+      </button>
+      <button type="button" role="tab" id="tab-cobro" class="tab" aria-controls="view-cobro" aria-selected="false">
+        <span class="tab-label">Cobrar salida</span>
+        <span class="badge" id="badge-active" aria-label="Vehículos activos">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <!-- ============ PANTALLA 1 — Registrar ingreso ============ -->
+    <section id="view-ingreso" role="tabpanel" aria-labelledby="tab-ingreso">
+      <p class="screen-label">Pantalla 1 — Registrar ingreso</p>
+
+      <form id="form-ingreso" class="card" novalidate autocomplete="off">
+        <div class="field">
+          <label class="label" for="in-plate">Patente</label>
+          <input id="in-plate" class="input mono" type="text" name="patente"
+                 maxlength="8" autocapitalize="characters" autocomplete="off" autocorrect="off"
+                 spellcheck="false" enterkeyhint="done" placeholder="AB123CD"
+                 aria-describedby="in-plate-hint in-plate-error">
+          <p id="in-plate-hint" class="hint">Alfanumérico, 6–7, obligatorio. No puede repetirse mientras el vehículo esté activo.</p>
+          <p id="in-plate-error" class="error" role="alert" hidden></p>
+        </div>
+
+        <fieldset class="field">
+          <legend class="label">Categoría</legend>
+          <div class="seg seg-3">
+            <label><input type="radio" name="categoria" value="AUTO" checked><span>Auto</span></label>
+            <label><input type="radio" name="categoria" value="MOTO"><span>Moto</span></label>
+            <label><input type="radio" name="categoria" value="CAMIONETA"><span>Camioneta</span></label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary btn-block">Registrar ingreso</button>
+        <p id="in-feedback" class="notice notice-ok" role="status" hidden></p>
+      </form>
+
+      <section class="card" aria-labelledby="active-title">
+        <h2 id="active-title" class="card-title">Vehículos activos</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Patente</th><th>Categoría</th><th>Ingreso</th><th class="col-action"><span class="sr-only">Acción</span></th></tr>
+            </thead>
+            <tbody id="active-body"></tbody>
+          </table>
+        </div>
+        <p id="active-empty" class="empty" hidden>No hay vehículos activos.</p>
+      </section>
+    </section>
+
+    <!-- ============ PANTALLA 2 — Cobrar salida ============ -->
+    <section id="view-cobro" role="tabpanel" aria-labelledby="tab-cobro" hidden>
+      <p class="screen-label">Pantalla 2 — Cobrar salida</p>
+
+      <div class="card">
+      <form id="form-buscar" novalidate autocomplete="off">
+        <div class="field">
+          <label class="label" for="co-plate">Patente</label>
+          <div class="search-row">
+            <input id="co-plate" class="input mono" type="text" name="patente"
+                   maxlength="8" autocapitalize="characters" autocomplete="off" autocorrect="off"
+                   spellcheck="false" enterkeyhint="search" placeholder="AB123CD"
+                   aria-describedby="co-plate-error">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+          </div>
+          <p id="co-plate-error" class="error" role="alert" hidden></p>
+        </div>
+      </form>
+
+        <form id="form-pay" class="pay" novalidate hidden autocomplete="off">
+          <dl class="rows">
+            <div><dt>Patente</dt><dd id="d-plate" class="mono"></dd></div>
+            <div><dt>Categoría</dt><dd id="d-category" class="mono"></dd></div>
+            <div><dt>Hora de ingreso</dt><dd id="d-entry" class="mono"></dd></div>
+            <div><dt>Hora de salida</dt><dd id="d-exit" class="mono"></dd></div>
+            <div><dt>Tiempo de estadía</dt><dd id="d-stay" class="mono"></dd></div>
+            <div class="total"><dt>Monto a pagar</dt><dd id="d-due" class="mono"></dd></div>
+          </dl>
+
+          <fieldset class="field">
+            <legend class="label">Método de pago</legend>
+            <div class="seg seg-4">
+              <label><input type="radio" name="metodo" value="EFECTIVO" checked><span>Efectivo</span></label>
+              <label><input type="radio" name="metodo" value="DEBITO"><span>Débito</span></label>
+              <label><input type="radio" name="metodo" value="CREDITO"><span>Crédito</span></label>
+              <label><input type="radio" name="metodo" value="QR"><span>QR</span></label>
+            </div>
+          </fieldset>
+
+          <div class="pair">
+            <div class="field">
+              <label class="label" for="co-paid">Monto abonado</label>
+              <input id="co-paid" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*"
+                     autocomplete="off" enterkeyhint="done" placeholder="0" aria-describedby="co-pay-error">
+            </div>
+            <div class="field">
+              <label class="label" for="co-change">Vuelto</label>
+              <output id="co-change" class="input mono output" for="co-paid">$ 0</output>
+            </div>
+          </div>
+          <p id="co-pay-error" class="error" role="alert" hidden></p>
+          <p id="co-notice" class="notice notice-warn" role="status" hidden></p>
+
+          <div class="actions">
+            <button type="submit" id="btn-confirm" class="btn btn-primary">Confirmar cobro</button>
+            <button type="button" id="btn-cancel" class="btn btn-secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <details class="card tariffs">
+        <summary>Ver tarifas</summary>
+        <table class="table">
+          <thead><tr><th>Categoría</th><th>1 HS</th><th>12 HS</th><th>24 HS</th></tr></thead>
+          <tbody id="tariff-body"></tbody>
+        </table>
+        <p class="hint">Tolerancia de 15 minutos sobre cada tramo. El precio es el mismo para todos los métodos de pago.</p>
+      </details>
+
+      <section class="card" aria-labelledby="exits-title">
+        <h2 id="exits-title" class="card-title">Salidas de las últimas 24 h</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Patente</th><th>Salida</th><th>Pago</th><th class="num">Total</th></tr>
+            </thead>
+            <tbody id="exits-body"></tbody>
+          </table>
+        </div>
+        <p id="exits-empty" class="empty" hidden>Todavía no hay salidas registradas.</p>
+        <p class="hint">Cada registro se borra automáticamente 24 h después de la salida.</p>
+      </section>
+    </section>
+  </main>
+
+  <!-- ============ Pop-up — Prevención de pérdida de datos ============ -->
+  <dialog id="dlg-discard" aria-labelledby="dlg-discard-title">
+    <form method="dialog" class="dlg">
+      <h2 id="dlg-discard-title">¿Descartar el cobro en curso?</h2>
+      <p>Hay un cobro sin confirmar. Si cancelás ahora, se perderán los datos cargados.</p>
+      <div class="actions">
+        <button type="submit" value="keep" class="btn btn-secondary">Volver</button>
+        <button type="submit" value="discard" class="btn btn-danger">Descartar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Pop-up — Ticket de salida ============ -->
+  <dialog id="dlg-ticket" aria-labelledby="dlg-ticket-title">
+    <form method="dialog" class="dlg">
+      <div class="ok-head">
+        <span class="ok-icon" aria-hidden="true">✓</span>
+        <h2 id="dlg-ticket-title">Cobro registrado</h2>
+      </div>
+      <p class="hint">Ticket de salida</p>
+      <dl class="rows" id="ticket-rows"></dl>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary btn-block" autofocus>Listo</button>
+      </div>
+    </form>
+  </dialog>
+
+  <noscript><p class="wrap notice notice-warn">Esta aplicación necesita JavaScript habilitado.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

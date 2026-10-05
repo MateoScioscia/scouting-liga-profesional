@@ -1,0 +1,11 @@
+{
+  "name": "laposta",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "La Posta — registro de ingresos y cobro de salidas de estacionamiento",
+  "scripts": {
+    "test": "node --test",
+    "start": "npx --yes serve . -l 3000"
+  }
+}
