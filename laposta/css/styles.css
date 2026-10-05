@@ -73,11 +73,7 @@ h1 { margin: 0; font-size: 1.15rem; line-height: 1.2; }
 }
 
 /* ---------- Screens & cards ---------- */
-main { padding-top: 14px; }
-.screen-label {
-  margin: 0 0 8px; font-size: .72rem; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--muted);
-}
+main { padding-top: 20px; }
 .card {
   background: var(--paper); border: 2px solid var(--ink);
   padding: 16px; margin: 0 0 16px;
