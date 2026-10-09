@@ -95,9 +95,6 @@ export function findHorario(horarioId) {
   return null;
 }
 
-// Fictional sign-up history per activity: the 5 previous months (oldest first) + a partial current month.
-// Real sign-ups made in the app are added on top of the current month.
-
 /** Occupancy per activity: places taken / total places, and how many schedules are full. */
 export function activitySummary() {
   return ACTIVITIES.map((a) => {
